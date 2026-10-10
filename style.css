@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap');
+
+:root { color-scheme: light; font-family: 'Manrope', sans-serif; color: #38483c; background: #f6f4ed; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { position: relative; height: 100svh; min-height: 660px; overflow: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid #739d65; outline-offset: 5px; }
+button:disabled { cursor: default; opacity: .5; }
+[hidden] { display: none !important; }
+.heading { position: absolute; top: 9%; left: 8%; z-index: 2; pointer-events: none; }
+.eyebrow { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 700; letter-spacing: 3px; }
+.eyebrow span { width: 7px; height: 7px; border-radius: 50%; background: #84a171; }
+h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: clamp(38px, 4.6vw, 68px); line-height: 1.14; letter-spacing: -2px; margin: 25px 0 20px; }
+h1 em { color: #7b946a; font-weight: 500; }
+.heading p { font-size: 13px; line-height: 1.9; color: #879084; }
+#scene { position: absolute; inset: 0; touch-action: none; }
+#scene canvas { display: block; width: 100%; height: 100%; }
+.seed-tray, .growth-panel { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3; background: #fffdf5e8; border: 1px solid #e7e5da; box-shadow: 0 12px 40px #5664420b; border-radius: 22px; backdrop-filter: blur(12px); }
+.seed-tray { display: flex; align-items: center; gap: 17px; padding: 14px 20px 14px 12px; width: max-content; max-width: calc(100% - 36px); }
+#seed { width: 64px; height: 64px; flex-shrink: 0; border: 1px solid #e9e5d7; border-radius: 17px; background: #f2eedf; touch-action: none; cursor: grab; transition: background .2s, box-shadow .2s; }
+#seed svg { width: 100%; height: 100%; pointer-events: none; }
+#seed.selected { box-shadow: 0 0 0 3px #90ad79; }
+#seed.dragging { position: fixed; z-index: 10; cursor: grabbing; margin: 0; pointer-events: none; box-shadow: 0 8px 24px #38483c25; }
+.tray-title, .tray-hint { display: block; }
+.tray-title { font-size: 13px; font-weight: 700; }
+.tray-hint { font-size: 10px; margin-top: 7px; color: #939789; }
+.plant-button { border: 0; border-radius: 12px; background: #e7eddf; padding: 12px 16px; font-size: 11px; font-weight: 700; }
+.plant-button:hover { background: #dce6d0; }
+.growth-panel { width: 330px; padding: 22px 25px 15px; }
+.growth-label { display: flex; justify-content: space-between; font-size: 12px; }
+#progress-text { color: #879084; font-variant-numeric: tabular-nums; }
+progress { display: block; width: 100%; height: 5px; border: 0; border-radius: 4px; overflow: hidden; margin: 16px 0; background: #e7eadd; accent-color: #8aa675; }
+progress::-webkit-progress-bar { background: #e7eadd; }
+progress::-webkit-progress-value { background: #8aa675; border-radius: 4px; }
+progress::-moz-progress-bar { background: #8aa675; }
+#reset { background: none; border: 0; display: flex; justify-content: space-between; width: 100%; padding: 5px 0; font-size: 11px; color: #7d8975; }
+#reset span { font-size: 17px; }
+footer { position: absolute; bottom: 32px; left: 8%; right: 8%; display: flex; justify-content: space-between; gap: 15px; color: #929789; font-size: 10px; pointer-events: none; }
+.mouse-icon { margin-left: 10px; font-size: 18px; }
+#error { position: absolute; top: 45%; left: 50%; transform: translateX(-50%); width: min(420px, 90%); padding: 25px; background: #fff5e8; border-radius: 16px; z-index: 4; line-height: 1.7; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 700px) {
+  main { min-height: 600px; }
+  .heading { top: 5%; left: 7%; }
+  h1 { font-size: 40px; margin: 17px 0 12px; }
+  .heading p { font-size: 11px; }
+  .eyebrow { font-size: 9px; }
+  .seed-tray, .growth-panel { bottom: 80px; }
+  .seed-tray { gap: 10px; padding-right: 12px; }
+  .tray-title { font-size: 11px; }
+  .tray-hint { font-size: 9px; max-width: 140px; line-height: 1.5; }
+  .plant-button { padding: 12px 10px; font-size: 10px; }
+  #seed { width: 53px; height: 53px; }
+  footer { left: 7%; right: 7%; bottom: 24px; font-size: 9px; }
+  footer span:first-child { max-width: 105px; }
+  footer span:last-child { max-width: 150px; text-align: right; }
+}

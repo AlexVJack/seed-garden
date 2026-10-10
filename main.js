@@ -1,0 +1,337 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (selector) => document.querySelector(selector);
+const container = $('#scene');
+const seedButton = $('#seed');
+const duration = 26;
+const groundY = 0.26;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#f6f4ed');
+scene.fog = new THREE.Fog('#f6f4ed', 18, 35);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 60);
+camera.position.set(8, 6.2, 10);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+renderer.setClearColor('#f6f4ed');
+container.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.8, 0);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 8;
+controls.maxDistance = 18;
+controls.minPolarAngle = 0.4;
+controls.maxPolarAngle = Math.PI / 2.15;
+scene.add(new THREE.HemisphereLight('#fffbeb', '#a3ad8d', 2.5));
+const sunlight = new THREE.DirectionalLight('#fff3d5', 3.2);
+sunlight.position.set(-3, 9, 5);
+sunlight.castShadow = true;
+sunlight.shadow.mapSize.set(2048, 2048);
+Object.assign(sunlight.shadow.camera, { left: -7, right: 7, top: 8, bottom: -7, near: 0.5, far: 25 });
+sunlight.shadow.normalBias = 0.035;
+sunlight.shadow.bias = -0.0002;
+scene.add(sunlight);
+
+const material = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.95, ...extra });
+const earth = material('#a68563');
+const turf = material('#a8b782');
+const stone = material('#c5c4ae');
+const grass = material('#899e69');
+const bark = material('#907052');
+const leafMaterials = ['#8fa96b', '#a8bc7b', '#78955d', '#b8c88b', '#95ae73'].map((color) => material(color));
+const island = new THREE.Group();
+scene.add(island);
+const soil = new THREE.Mesh(new THREE.CylinderGeometry(2.65, 2.25, 0.65, 11), earth);
+soil.position.y = -0.115;
+soil.castShadow = soil.receiveShadow = true;
+island.add(soil);
+const ground = new THREE.Mesh(new THREE.CylinderGeometry(2.67, 2.65, 0.12, 11), turf);
+ground.position.y = groundY - 0.06;
+ground.receiveShadow = true;
+island.add(ground);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), material('#f6f4ed'));
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.46;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Cryptographic randomness selects a seed; a deterministic PRNG makes each tree coherent.
+function createRandom(seed) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function randomSeed() {
+  return crypto.getRandomValues(new Uint32Array(1))[0];
+}
+const decorRandom = createRandom(42);
+for (let i = 0; i < 36; i++) {
+  const angle = decorRandom() * Math.PI * 2;
+  const radius = 1.85 + decorRandom() * 0.53;
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+  if (i % 4 === 0) {
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.09 + decorRandom() * 0.08, 0), stone);
+    rock.position.set(x, groundY + 0.04, z);
+    rock.scale.set(1.3, 0.6, 1);
+    rock.rotation.set(decorRandom(), decorRandom() * 6, decorRandom());
+    rock.castShadow = true;
+    island.add(rock);
+  } else {
+    for (let blade = 0; blade < 3; blade++) {
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.15 + decorRandom() * 0.12, 3), grass);
+      tuft.position.set(x + blade * 0.035, groundY + 0.07, z);
+      tuft.rotation.z = (decorRandom() - 0.5) * 0.6;
+      island.add(tuft);
+    }
+  }
+}
+
+const marker = new THREE.Mesh(
+  new THREE.RingGeometry(0.17, 0.21, 40),
+  new THREE.MeshBasicMaterial({ color: '#f8ffdc', transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+);
+marker.rotation.x = -Math.PI / 2;
+marker.position.y = groundY + 0.012;
+marker.visible = false;
+scene.add(marker);
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -groundY);
+function plantingPoint(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const point = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+  // Keep the growing crown inside the diorama and away from its edge.
+  return point && Math.hypot(point.x, point.z) < 1.45 ? point : null;
+}
+
+let tree = null;
+let pieces = [];
+let plantedAt = null;
+let armed = false;
+let drag = null;
+let finished = false;
+const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
+const up = new THREE.Vector3(0, 1, 0);
+const smooth = (value) => value * value * (3 - 2 * value);
+
+function makeTree(point) {
+  const random = createRandom(randomSeed());
+  tree = new THREE.Group();
+  tree.position.copy(point);
+  scene.add(tree);
+  pieces = [];
+
+  function foliage(tip, birth, size) {
+    for (let i = 0; i < 5; i++) {
+      const leaf = new THREE.Mesh(leafGeometry, leafMaterials[Math.floor(random() * leafMaterials.length)]);
+      leaf.position.copy(tip).add(new THREE.Vector3((random() - 0.5) * 0.6, (random() - 0.25) * 0.5, (random() - 0.5) * 0.6));
+      leaf.rotation.set(random() * 3, random() * 3, random() * 3);
+      leaf.castShadow = true;
+      tree.add(leaf);
+      pieces.push({ mesh: leaf, birth: birth + random() * 0.035, span: 0.14, scale: new THREE.Vector3(size * 1.2, size * 0.85, size) });
+      leaf.scale.setScalar(0);
+    }
+  }
+
+  function branch(origin, direction, length, radius, level, birth, span) {
+    const segments = 5;
+    let position = origin.clone();
+    let heading = direction.clone().normalize();
+    const step = length / segments;
+    for (let i = 0; i < segments; i++) {
+      heading.add(new THREE.Vector3((random() - 0.5) * 0.16, 0.035, (random() - 0.5) * 0.16)).normalize();
+      const bottomRadius = radius * (1 - i / segments * 0.55);
+      const topRadius = radius * (1 - (i + 1) / segments * 0.55);
+      const geometry = new THREE.CylinderGeometry(topRadius, bottomRadius, step, 7);
+      geometry.translate(0, step / 2, 0);
+      const mesh = new THREE.Mesh(geometry, bark);
+      mesh.position.copy(position);
+      mesh.quaternion.setFromUnitVectors(up, heading);
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.scale.setScalar(0);
+      tree.add(mesh);
+      pieces.push({ mesh, birth: birth + span * i / segments, span: span / segments, scale: new THREE.Vector3(1, 1, 1) });
+      position.addScaledVector(heading, step);
+
+      if (level < 3 && (i === 2 || i === 4)) {
+        const count = level === 0 ? 3 : 2;
+        const baseAngle = random() * Math.PI * 2;
+        for (let child = 0; child < count; child++) {
+          const angle = baseAngle + child * Math.PI * 2 / count + random() * 0.4;
+          const outward = new THREE.Vector3(Math.cos(angle), 0.55 + random() * 0.5, Math.sin(angle));
+          const childDirection = heading.clone().multiplyScalar(0.35).add(outward).normalize();
+          branch(position, childDirection, length * (0.53 + random() * 0.13), bottomRadius * 0.48, level + 1,
+            birth + span * (i + 1) / segments, span * 0.65);
+        }
+      }
+    }
+    if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
+  }
+  branch(new THREE.Vector3(), new THREE.Vector3((random() - 0.5) * 0.08, 1, (random() - 0.5) * 0.08), 2.65 + random() * 0.35, 0.17, 0, 0.025, 0.37);
+  // Normalize timings so the last leaves finish at exactly 100%.
+  const end = Math.max(...pieces.map((piece) => piece.birth + piece.span));
+  for (const piece of pieces) {
+    piece.birth /= end;
+    piece.span /= end;
+  }
+}
+
+function announce(text) { $('#announcement').textContent = text; }
+function plant(point) {
+  if (plantedAt !== null) return;
+  armed = false;
+  marker.visible = false;
+  seedButton.classList.remove('selected');
+  $('.seed-tray').hidden = true;
+  $('.growth-panel').hidden = false;
+  $('#instruction').innerHTML = 'Трохи терпіння — і з’явиться твій сад.<br />Можеш обертати його й розглядати.';
+  makeTree(point);
+  plantedAt = performance.now();
+  finished = false;
+  announce('Насінину посаджено. Дерево виросте приблизно за 26 секунд.');
+}
+
+function armSeed() {
+  if (plantedAt !== null) return;
+  armed = !armed;
+  seedButton.classList.toggle('selected', armed);
+  $('#tray-hint').textContent = armed ? 'Натисни на землю, щоб обрати місце' : 'Перетягни або натисни, щоб посадити';
+  announce(armed ? 'Насінину взято. Натисни на центр острівця або кнопку «Посадити».' : 'Насінину повернуто.');
+}
+
+seedButton.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0 || plantedAt !== null) return;
+  event.preventDefault();
+  controls.enabled = false;
+  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+  seedButton.setPointerCapture(event.pointerId);
+});
+seedButton.addEventListener('pointermove', (event) => {
+  if (!drag || drag.id !== event.pointerId) return;
+  if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 6) drag.moved = true;
+  if (!drag.moved) return;
+  // Move the button outside the transformed tray so viewport coordinates stay correct.
+  if (!seedButton.classList.contains('dragging')) {
+    document.body.appendChild(seedButton);
+    seedButton.classList.add('dragging');
+    seedButton.setPointerCapture(event.pointerId);
+  }
+  seedButton.style.left = `${event.clientX - 32}px`;
+  seedButton.style.top = `${event.clientY - 32}px`;
+  const point = plantingPoint(event);
+  marker.visible = Boolean(point);
+  if (point) marker.position.set(point.x, groundY + 0.012, point.z);
+});
+function endDrag(event, cancelled = false) {
+  if (!drag || drag.id !== event.pointerId) return;
+  const wasMoved = drag.moved;
+  const point = !cancelled && wasMoved ? plantingPoint(event) : null;
+  drag = null;
+  controls.enabled = true;
+  marker.visible = false;
+  seedButton.classList.remove('dragging');
+  seedButton.style.removeProperty('left');
+  seedButton.style.removeProperty('top');
+  $('.seed-tray').prepend(seedButton);
+  if (seedButton.hasPointerCapture(event.pointerId)) seedButton.releasePointerCapture(event.pointerId);
+  if (point) plant(point);
+  else if (!wasMoved && !cancelled) armSeed();
+  else if (!cancelled) announce('Посади насінину ближче до центру острівця.');
+}
+seedButton.addEventListener('pointerup', (event) => endDrag(event));
+seedButton.addEventListener('pointercancel', (event) => endDrag(event, true));
+seedButton.addEventListener('click', (event) => { if (event.detail === 0) armSeed(); });
+$('#plant').addEventListener('click', () => plant(new THREE.Vector3(0, groundY, 0)));
+renderer.domElement.addEventListener('pointermove', (event) => {
+  if (!armed) return;
+  const point = plantingPoint(event);
+  marker.visible = Boolean(point);
+  if (point) marker.position.set(point.x, groundY + 0.012, point.z);
+});
+renderer.domElement.addEventListener('pointerleave', () => { if (!drag) marker.visible = false; });
+renderer.domElement.addEventListener('click', (event) => {
+  if (!armed) return;
+  const point = plantingPoint(event);
+  if (point) plant(point);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    armed = false;
+    marker.visible = false;
+    seedButton.classList.remove('selected');
+    $('#tray-hint').textContent = 'Перетягни або натисни, щоб посадити';
+  }
+});
+$('#reset').addEventListener('click', () => {
+  if (tree) {
+    scene.remove(tree);
+    tree.traverse((object) => {
+      if (object.isMesh && object.geometry !== leafGeometry) object.geometry.dispose();
+    });
+  }
+  tree = null;
+  pieces = [];
+  plantedAt = null;
+  finished = false;
+  $('.seed-tray').hidden = false;
+  $('.growth-panel').hidden = true;
+  $('#progress').value = 0;
+  $('#progress-text').textContent = '0%';
+  $('#growth-label').textContent = 'Прокидається життя';
+  $('#tray-hint').textContent = 'Перетягни або натисни, щоб посадити';
+  $('#instruction').innerHTML = 'Перетягни насінину на землю.<br />Дай природі трохи часу.';
+  announce('Нова насінина готова до посадки.');
+  $('#plant').focus();
+});
+
+function resize() {
+  const { width, height } = container.getBoundingClientRect();
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  const mobile = width < 700;
+  camera.fov = mobile ? 65 : 44;
+  // Reserve space for the heading; keep the whole mature crown in view.
+  camera.setViewOffset(width, height, mobile ? 0 : -width * 0.18, mobile ? -height * 0.09 : 0, width, height);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+renderer.setAnimationLoop((now) => {
+  controls.update();
+  if (plantedAt !== null) {
+    const progress = Math.min((now - plantedAt) / (duration * 1000), 1);
+    for (const piece of pieces) {
+      const fraction = Math.max(0, Math.min((progress - piece.birth) / piece.span, 1));
+      piece.mesh.visible = fraction > 0;
+      piece.mesh.scale.copy(piece.scale).multiplyScalar(smooth(fraction));
+    }
+    if (!reducedMotion.matches) {
+      tree.rotation.z = Math.sin(now * 0.0007) * 0.008 * progress;
+      tree.rotation.x = Math.cos(now * 0.0005) * 0.005 * progress;
+    }
+    $('#progress').value = progress;
+    $('#progress-text').textContent = `${Math.round(progress * 100)}%`;
+    $('#growth-label').textContent = progress < 0.2 ? 'Прокидається життя' : progress < 0.55 ? 'Тягнеться до сонця' : progress < 1 ? 'Розгортається крона' : 'Твоє дерево виросло';
+    if (progress === 1 && !finished) {
+      finished = true;
+      $('#instruction').innerHTML = 'Одне зернятко. Цілий маленький світ.<br />Посади ще одне — воно буде іншим.';
+      announce('Твоє дерево виросло. Можеш розглянути його або посадити нове.');
+    }
+  }
+  renderer.render(scene, camera);
+});
