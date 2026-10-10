@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="uk">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
-    <title>Зернятко — маленький сад</title>
+    <title>Seed — a little garden</title>
     <link rel="stylesheet" href="./style.css" />
     <script type="importmap">
       {
@@ -17,29 +17,35 @@
   </head>
   <body>
     <main>
+      <nav class="language-switch" aria-label="Language" data-i18n-aria="language">
+        <button type="button" data-language="en" lang="en" aria-label="English" aria-pressed="true">EN</button>
+        <span aria-hidden="true">/</span>
+        <button type="button" data-language="uk" lang="uk" aria-label="Українська" aria-pressed="false">УК</button>
+      </nav>
       <header class="heading">
-        <div class="eyebrow"><span></span> МАЛЕНЬКИЙ САД</div>
-        <h1>Усе починається<br />з <em>зернятка.</em></h1>
-        <p id="instruction">Перетягни насінину на землю.<br />Дай природі трохи часу.</p>
+        <div class="eyebrow"><span></span><span data-i18n="eyebrow">A LITTLE GARDEN</span></div>
+        <h1 data-i18n="heading">It all begins<br />with a <em>seed.</em></h1>
+        <p id="instruction">Drag the seed onto the soil.<br />Give nature a little time.</p>
       </header>
-      <div id="scene" aria-label="Тривимірний острівець землі. Обертайте сцену перетягуванням, наближайте коліщатком."></div>
-      <div id="error" role="alert" hidden>Не вдалося відкрити 3D-сцену. Перевір підключення до інтернету та підтримку WebGL у браузері, потім онови сторінку.</div>
-      <section class="seed-tray" aria-label="Посадка дерева">
-        <button id="seed" aria-label="Взяти насінину. Перетягни на землю або натисни, а потім обери місце посадки.">
+      <div id="scene" data-i18n-aria="scene" aria-label="A three-dimensional island of soil. Drag to rotate and scroll to zoom."></div>
+      <div id="error" data-i18n="error" role="alert" hidden>Unable to load the 3D scene. Check your internet connection and browser WebGL support, then refresh the page.</div>
+      <section class="seed-tray" data-i18n-aria="planting" aria-label="Plant a tree">
+        <button id="seed" data-i18n-aria="seed" aria-label="Pick up the seed. Drag it onto the soil, or click it and choose a planting spot.">
           <svg viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="seed-color" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d6a16b"/><stop offset="1" stop-color="#805135"/></linearGradient></defs><path d="M55 13C72 39 65 62 44 68C23 74 12 54 23 36C31 24 45 24 55 13Z" fill="url(#seed-color)"/><path d="M52 23C43 39 34 43 35 59" fill="none" stroke="#edc39a" stroke-width="3" stroke-linecap="round"/></svg>
         </button>
-        <div><span class="tray-title" id="tray-title">Твоє перше зернятко</span><span class="tray-hint" id="tray-hint">Перетягни або натисни, щоб посадити</span></div>
-        <button class="plant-button" id="plant">Посадити</button>
+        <div><span class="tray-title" id="tray-title" data-i18n="trayTitle">Your first little seed</span><span class="tray-hint" id="tray-hint">Drag or click to plant</span></div>
+        <button class="plant-button" id="plant" data-i18n="plant">Plant</button>
       </section>
-      <section class="growth-panel" hidden aria-label="Ріст дерева">
-        <div class="growth-label"><span id="growth-label">Прокидається життя</span><span id="progress-text">0%</span></div>
-        <progress id="progress" max="1" value="0" aria-label="Прогрес росту дерева"></progress>
-        <button id="reset">Нове зернятко <span aria-hidden="true">↻</span></button>
+      <section class="growth-panel" data-i18n-aria="growth" hidden aria-label="Tree growth">
+        <div class="growth-label"><span id="growth-label">Life is waking up</span><span id="progress-text">0%</span></div>
+        <progress id="progress" max="1" value="0" data-i18n-aria="progress" aria-label="Tree growth progress"></progress>
+        <button id="reset"><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
       </section>
-      <footer><span>Кожне дерево — неповторне</span><span>Потягни сцену, щоб обертати <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
+      <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
     <script type="module">
+      import './i18n.js';
       import('./main.js').catch((error) => {
         console.error(error);
         document.querySelector('#error').hidden = false;

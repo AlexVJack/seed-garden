@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { announce, setUiState } from './i18n.js';
 
 const $ = (selector) => document.querySelector(selector);
 const container = $('#scene');
@@ -190,7 +191,6 @@ function makeTree(point) {
   }
 }
 
-function announce(text) { $('#announcement').textContent = text; }
 function plant(point) {
   if (plantedAt !== null) return;
   armed = false;
@@ -198,19 +198,19 @@ function plant(point) {
   seedButton.classList.remove('selected');
   $('.seed-tray').hidden = true;
   $('.growth-panel').hidden = false;
-  $('#instruction').innerHTML = 'Трохи терпіння — і з’явиться твій сад.<br />Можеш обертати його й розглядати.';
+  setUiState({ instruction: 'growing', hint: 'hint' });
   makeTree(point);
   plantedAt = performance.now();
   finished = false;
-  announce('Насінину посаджено. Дерево виросте приблизно за 26 секунд.');
+  announce('planted');
 }
 
 function armSeed() {
   if (plantedAt !== null) return;
   armed = !armed;
   seedButton.classList.toggle('selected', armed);
-  $('#tray-hint').textContent = armed ? 'Натисни на землю, щоб обрати місце' : 'Перетягни або натисни, щоб посадити';
-  announce(armed ? 'Насінину взято. Натисни на центр острівця або кнопку «Посадити».' : 'Насінину повернуто.');
+  setUiState({ hint: armed ? 'armedHint' : 'hint' });
+  announce(armed ? 'pickedUp' : 'putBack');
 }
 
 seedButton.addEventListener('pointerdown', (event) => {
@@ -250,7 +250,7 @@ function endDrag(event, cancelled = false) {
   if (seedButton.hasPointerCapture(event.pointerId)) seedButton.releasePointerCapture(event.pointerId);
   if (point) plant(point);
   else if (!wasMoved && !cancelled) armSeed();
-  else if (!cancelled) announce('Посади насінину ближче до центру острівця.');
+  else if (!cancelled) announce('invalidSpot');
 }
 seedButton.addEventListener('pointerup', (event) => endDrag(event));
 seedButton.addEventListener('pointercancel', (event) => endDrag(event, true));
@@ -273,7 +273,7 @@ document.addEventListener('keydown', (event) => {
     armed = false;
     marker.visible = false;
     seedButton.classList.remove('selected');
-    $('#tray-hint').textContent = 'Перетягни або натисни, щоб посадити';
+    setUiState({ hint: 'hint' });
   }
 });
 $('#reset').addEventListener('click', () => {
@@ -291,10 +291,8 @@ $('#reset').addEventListener('click', () => {
   $('.growth-panel').hidden = true;
   $('#progress').value = 0;
   $('#progress-text').textContent = '0%';
-  $('#growth-label').textContent = 'Прокидається життя';
-  $('#tray-hint').textContent = 'Перетягни або натисни, щоб посадити';
-  $('#instruction').innerHTML = 'Перетягни насінину на землю.<br />Дай природі трохи часу.';
-  announce('Нова насінина готова до посадки.');
+  setUiState({ growth: 'awakening', hint: 'hint', instruction: 'idle' });
+  announce('ready');
   $('#plant').focus();
 });
 
@@ -326,11 +324,11 @@ renderer.setAnimationLoop((now) => {
     }
     $('#progress').value = progress;
     $('#progress-text').textContent = `${Math.round(progress * 100)}%`;
-    $('#growth-label').textContent = progress < 0.2 ? 'Прокидається життя' : progress < 0.55 ? 'Тягнеться до сонця' : progress < 1 ? 'Розгортається крона' : 'Твоє дерево виросло';
+    setUiState({ growth: progress < 0.2 ? 'awakening' : progress < 0.55 ? 'reaching' : progress < 1 ? 'unfolding' : 'complete' });
     if (progress === 1 && !finished) {
       finished = true;
-      $('#instruction').innerHTML = 'Одне зернятко. Цілий маленький світ.<br />Посади ще одне — воно буде іншим.';
-      announce('Твоє дерево виросло. Можеш розглянути його або посадити нове.');
+      setUiState({ instruction: 'grown' });
+      announce('finished');
     }
   }
   renderer.render(scene, camera);
