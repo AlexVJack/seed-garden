@@ -250,7 +250,7 @@ test('legacy two-plot saves migrate in every direction with seeds, growth and bi
     const saved = storage(JSON.stringify({ ...first, second }));
     const garden = createResources(saved);
     assert.equal(garden.parcels.length, 2);
-    assert.deepEqual(garden.parcel(1), { ...position, plants: second.plants, tree: second.tree, biome: 'conifer' });
+    assert.deepEqual(garden.parcel(1), { ...position, plants: second.plants, tree: second.tree, treeType: 'pine', biome: 'conifer' });
     assert.deepEqual(garden.tree, first.tree);
     assert.deepEqual(garden.plants, first.plants);
     garden.mineStone();
@@ -338,4 +338,45 @@ test('new-format saves reject duplicates, disconnected and malformed positions a
   const oversized = createResources(storage(JSON.stringify({ parcels: Array.from({ length: 20 }, (_, q) => ({ ...parcel, q })) })));
   assert.equal(oversized.parcels.length, 12);
   assert.equal(oversized.canExpand(), false);
+});
+
+test('plots 3 through 12 accept either tree and preserve the chosen species and biome on reload', () => {
+  for (let id = 2; id < parcelLimit; id++) {
+    for (const type of ['apple', 'pine']) {
+      const parcels = Array.from({ length: id + 1 }, (_, q) => ({ q, r: 0, plants: [], tree: null, biome: 'meadow' }));
+      const saved = storage(JSON.stringify({ stone: 200, parcels }));
+      const garden = createResources(saved);
+      assert.equal(garden.setTree(eligibleSave().tree, id, type), true);
+      const restored = createResources(saved);
+      assert.equal(restored.parcel(id).treeType, type);
+      assert.equal(restored.parcel(id).biome, type === 'pine' ? 'conifer' : 'meadow');
+      assert.deepEqual(restored.parcel(id).tree, eligibleSave().tree);
+      assert.equal(restored.setTree(eligibleSave().tree, id, type === 'pine' ? 'apple' : 'pine'), false);
+    }
+  }
+});
+
+test('the first two plots keep their original trees and invalid species cannot be planted', () => {
+  const garden = createResources(storage(JSON.stringify({ parcels: [
+    { q: 0, r: 0, plants: [], tree: null }, { q: 1, r: 0, plants: [], tree: null }, { q: 2, r: 0, plants: [], tree: null },
+  ] })));
+  assert.equal(garden.setTree(eligibleSave().tree, 0, 'pine'), false);
+  assert.equal(garden.setTree(eligibleSave().tree, 1, 'apple'), false);
+  for (const type of ['oak', '', null, 42]) assert.equal(garden.setTree(eligibleSave().tree, 2, type), false);
+  assert.equal(garden.setTree(eligibleSave().tree, 0, 'apple'), true);
+  assert.equal(garden.setTree(eligibleSave().tree, 1, 'pine'), true);
+});
+
+test('existing multi-plot saves without explicit species retain their original trees', () => {
+  const parcels = Array.from({ length: 12 }, (_, q) => ({ q, r: 0, plants: [], tree: { ...eligibleSave().tree, seed: q + 42 },
+    biome: treeKind(q) === 'pine' ? 'conifer' : 'meadow' }));
+  const saved = storage(JSON.stringify({ version: 2, stone: 200, parcels }));
+  const garden = createResources(saved);
+  garden.parcels.forEach((parcel, id) => {
+    assert.equal(parcel.treeType, treeKind(id));
+    assert.equal(parcel.tree.seed, id + 42);
+    assert.equal(parcel.biome, parcels[id].biome);
+  });
+  garden.mineStone();
+  assert.deepEqual(createResources(saved).parcels, garden.parcels);
 });

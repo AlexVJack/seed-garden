@@ -1,4 +1,4 @@
-import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree } from './garden-layout.js';
 
 const storageKey = 'seed-garden-resources';
 export const stoneLimit = 10000;
@@ -26,8 +26,11 @@ export function createResources(storage) {
   }
   function readParcel(record, id) {
     const tree = validTree(record?.tree) ? copyTree(record.tree) : null;
+    // Older saves inferred the species from plot order; newer saves remember the player's choice.
+    const type = canPlantTree(record.treeType, id) ? record.treeType : treeKind(id);
     return { q: record.q, r: record.r, plants: readPlants(record.plants), tree,
-      biome: treeKind(id) === 'pine' && (tree || record.biome === 'conifer') ? 'conifer' : 'meadow' };
+      ...(tree ? { treeType: type } : {}),
+      biome: type === 'pine' && (tree || record.biome === 'conifer') ? 'conifer' : 'meadow' };
   }
   try {
     const saved = JSON.parse(storage.getItem(storageKey));
@@ -116,11 +119,12 @@ export function createResources(storage) {
       save();
       return true;
     },
-    setTree(value, parcelId = 0) {
+    setTree(value, parcelId = 0, type = treeKind(parcelId)) {
       const parcel = parcelAt(parcelId);
-      if (!parcel || !validTree(value) || parcel.tree) return false;
+      if (!parcel || !validTree(value) || parcel.tree || !canPlantTree(type, parcelId)) return false;
       parcel.tree = copyTree(value);
-      if (treeKind(parcelId) === 'pine') parcel.biome = 'conifer';
+      parcel.treeType = type;
+      parcel.biome = type === 'pine' ? 'conifer' : 'meadow';
       save();
       return true;
     },

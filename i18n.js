@@ -198,7 +198,7 @@ function renderLanguage() {
     button.textContent = `${translate('neighbor')} ${Number(button.dataset.neighbor) + 1}`;
   });
   document.querySelectorAll('[data-parcel]').forEach((button) => {
-    button.textContent = `${translate('parcel')} ${Number(button.dataset.parcel) + 1} · ${translate(button.dataset.treeKind)}`;
+    button.textContent = `${translate('parcel')} ${Number(button.dataset.parcel) + 1}`;
   });
   const source = document.querySelector('#expansion-source');
   source.textContent = `${translate('parcel')} ${Number(source.dataset.sourceParcel) + 1}`;

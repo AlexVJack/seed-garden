@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { announce, setUiState, translate } from './i18n.js';
 import { createResources } from './resources.js';
-import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, treeKind } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, canPlantTree } from './garden-layout.js';
 import { makePlant } from './plants.js';
 import { makeTree } from './trees.js';
 import { makeTerrain, groundY } from './terrain.js';
@@ -70,7 +70,7 @@ function buildTree(view, record) {
     view.tree.dispose();
   }
   view.treeRecord = record;
-  view.tree = record ? makeTree(treeKind(view.id), record.seed) : null;
+  view.tree = record ? makeTree(resources.parcel(view.id).treeType, record.seed) : null;
   view.finished = false;
   view.restoredMature = Boolean(record && Date.now() - record.startedAt >= growthDuration);
   if (view.tree) {
@@ -108,8 +108,7 @@ function createParcel(id) {
   const button = document.createElement('button');
   button.type = 'button';
   button.dataset.parcel = id;
-  button.dataset.treeKind = treeKind(id);
-  button.textContent = `${translate('parcel')} ${id + 1} · ${translate(treeKind(id))}`;
+  button.textContent = `${translate('parcel')} ${id + 1}`;
   button.addEventListener('click', () => selectParcel(id));
   $('#parcel-list').appendChild(button);
   return view;
@@ -229,11 +228,11 @@ function updateUI() {
   document.querySelectorAll('[data-tree-type]').forEach((button) => {
     const type = button.dataset.treeType;
     button.hidden = type === 'pine' && views.length < 2;
-    button.disabled = Boolean(record.tree) || type !== treeKind(activeParcel);
+    button.disabled = Boolean(record.tree) || !canPlantTree(type, activeParcel);
     button.setAttribute('aria-pressed', String(type === selectedType));
   });
   views.forEach((parcel) => {
-    const biome = parcel.id === activeParcel && selectedType === 'pine' ? 'conifer' : resources.parcel(parcel.id).biome;
+    const biome = parcel.id === activeParcel && isTree(selectedType) ? selectedType === 'pine' ? 'conifer' : 'meadow' : resources.parcel(parcel.id).biome;
     if (parcel.biome !== biome) {
       parcel.biome = biome;
       parcel.terrain.setBiome(biome);
@@ -315,7 +314,7 @@ $('#shears-toggle').addEventListener('click', () => {
 function selectType(type) {
   shearsActive = false;
   const record = resources.parcel(activeParcel);
-  if (isTree(type) && (record.tree || type !== treeKind(activeParcel))) return;
+  if (isTree(type) && (record.tree || !canPlantTree(type, activeParcel))) return;
   selectedType = selectedType === type ? null : type;
   if (selectedType) {
     const target = views[activeParcel].root.position.clone().add(new THREE.Vector3(0, 0.5, 0));
@@ -362,7 +361,7 @@ function removePlant(slot, parcelId = activeParcel) {
 function plantTree(point = new THREE.Vector3()) {
   if (!isTree(selectedType)) return;
   const record = { x: point.x, z: point.z, seed: randomSeed(), startedAt: Date.now() };
-  if (!resources.setTree(record, activeParcel)) return;
+  if (!resources.setTree(record, activeParcel, selectedType)) return;
   selectedType = null;
   buildTree(views[activeParcel], record);
   updateUI();
