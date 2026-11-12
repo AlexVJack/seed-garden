@@ -48,6 +48,23 @@ const messages = {
     invalidSpot: 'Plant the seed closer to the center of the island.',
     ready: 'A new seed is ready to plant.',
     finished: 'Your tree has grown. Explore it or plant a new one.',
+    shopIdle: 'Open the bag to choose a free tree seed.',
+    treeSeeds: 'Tree seeds',
+    smallPlants: 'Plants',
+    apple: 'Apple tree',
+    pine: 'Spruce',
+    free: 'Free',
+    treeHint: 'Tap the center of this plot to plant your tree.',
+    plantCenter: 'Plant in center',
+    nextParcel: 'Next hexagon',
+    grownApple: 'Grown apple tree',
+    expansionPrice: 'Expanding costs 500 stone. Plants stay in place.',
+    expansionReady: 'Choose a neighboring + to expand for 500 stone.',
+    expanded: 'New plot unlocked. Free spruce seeds are now in the shop.',
+    neighbor: 'Add neighboring plot',
+    parcels: 'Garden plots',
+    parcelOne: 'Plot 1 · Apple',
+    parcelTwo: 'Plot 2 · Spruce',
   },
   uk: {
     title: 'Зернятко — маленький сад',
@@ -98,6 +115,23 @@ const messages = {
     invalidSpot: 'Посади насінину ближче до центру острівця.',
     ready: 'Нова насінина готова до посадки.',
     finished: 'Твоє дерево виросло. Можеш розглянути його або посадити нове.',
+    shopIdle: 'Відкрий торбинку та обери безкоштовне насіння дерева.',
+    treeSeeds: 'Насіння дерев',
+    smallPlants: 'Рослини',
+    apple: 'Яблуня',
+    pine: 'Ялинка',
+    free: 'Безкоштовно',
+    treeHint: 'Натисни в центрі цієї ділянки, щоб посадити дерево.',
+    plantCenter: 'Посадити в центрі',
+    nextParcel: 'Наступний шестикутник',
+    grownApple: 'Виросла яблуня',
+    expansionPrice: 'Розширення коштує 500 stone. Рослини залишаються.',
+    expansionReady: 'Обери сусідній +, щоб розширити сад за 500 stone.',
+    expanded: 'Нову ділянку відкрито. У магазині є безкоштовне насіння ялинки.',
+    neighbor: 'Додати сусідню ділянку',
+    parcels: 'Ділянки саду',
+    parcelOne: 'Ділянка 1 · Яблуня',
+    parcelTwo: 'Ділянка 2 · Ялинка',
   },
 };
 
@@ -111,13 +145,13 @@ function initialLanguage() {
 }
 
 let language = initialLanguage();
-const state = { instruction: 'idle', hint: 'hint', growth: 'awakening', announcement: null, plantingStatus: 'choosePlant' };
+const state = { instruction: 'shopIdle', growth: 'awakening', announcement: null, plantingStatus: 'choosePlant', placement: 'placePlant' };
 export function translate(key) { return messages[language][key]; }
 
 function renderState() {
   // HTML comes only from the bundled translation dictionaries.
   document.querySelector('#instruction').innerHTML = translate(state.instruction);
-  document.querySelector('#tray-hint').textContent = translate(state.hint);
+  document.querySelector('#placement-label').textContent = translate(state.placement);
   document.querySelector('#growth-label').textContent = translate(state.growth);
   document.querySelector('#announcement').textContent = state.announcement ? translate(state.announcement) : '';
   document.querySelector('#planting-status').textContent = translate(state.plantingStatus);
@@ -145,6 +179,9 @@ function renderLanguage() {
   });
   document.querySelectorAll('[data-slot]').forEach((button) => {
     button.textContent = `${translate('slot')} ${Number(button.dataset.slot) + 1}`;
+  });
+  document.querySelectorAll('[data-neighbor]').forEach((button) => {
+    button.textContent = `${translate('neighbor')} ${Number(button.dataset.neighbor) + 1}`;
   });
   renderState();
 }

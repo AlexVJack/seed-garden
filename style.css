@@ -26,15 +26,7 @@ h1 em { color: #7b946a; font-weight: 500; }
 .heading p { font-size: 13px; line-height: 1.9; color: #879084; }
 #scene { position: absolute; inset: 0; touch-action: none; }
 #scene canvas { display: block; width: 100%; height: 100%; -webkit-tap-highlight-color: transparent; }
-.seed-tray, .growth-panel { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3; background: #fffdf5e8; border: 1px solid #e7e5da; box-shadow: 0 12px 40px #5664420b; border-radius: 22px; backdrop-filter: blur(12px); }
-.seed-tray { display: flex; align-items: center; gap: 17px; padding: 14px 20px 14px 12px; width: max-content; max-width: calc(100% - 36px); }
-#seed { width: 64px; height: 64px; flex-shrink: 0; border: 1px solid #e9e5d7; border-radius: 17px; background: #f2eedf; touch-action: none; cursor: grab; transition: background .2s, box-shadow .2s; }
-#seed svg { width: 100%; height: 100%; pointer-events: none; }
-#seed.selected { box-shadow: 0 0 0 3px #90ad79; }
-#seed.dragging { position: fixed; z-index: 10; cursor: grabbing; margin: 0; pointer-events: none; box-shadow: 0 8px 24px #38483c25; }
-.tray-title, .tray-hint { display: block; }
-.tray-title { font-size: 13px; font-weight: 700; }
-.tray-hint { font-size: 10px; margin-top: 7px; color: #939789; }
+.growth-panel { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3; background: #fffdf5e8; border: 1px solid #e7e5da; box-shadow: 0 12px 40px #5664420b; border-radius: 22px; backdrop-filter: blur(12px); }
 .plant-button { border: 0; border-radius: 12px; background: #e7eddf; padding: 12px 16px; font-size: 11px; font-weight: 700; }
 .plant-button:hover { background: #dce6d0; }
 .growth-panel { width: 180px; max-width: calc(100% - 36px); padding: 10px 13px; border-radius: 13px; }
@@ -60,6 +52,22 @@ progress::-moz-progress-bar { background: #8aa675; }
 .plant-options button > span:first-child { font-size: 22px; }
 .plant-options button[aria-pressed="true"] { border-color: #739d65; background: #e7eddf; box-shadow: 0 0 0 1px #739d65; }
 .plant-options small { color: #879084; font-size: 9px; }
+.shop-section-title { margin: 10px 0 6px; color: #879084; font-size: 10px; }
+.tree-options button { flex-direction: row; justify-content: center; flex-wrap: wrap; }
+.tree-options small { width: 100%; }
+.expansion-progress { margin-top: 8px; border-top: 1px solid #e7e5da; padding-top: 10px; font-size: 10px; color: #7d8975; }
+.expansion-progress summary { cursor: pointer; min-height: 30px; }
+.expansion-progress ul { list-style: none; margin: 0; padding: 0; }
+.expansion-progress li { display: flex; justify-content: space-between; gap: 8px; margin: 7px 0; }
+.expansion-progress output { font-variant-numeric: tabular-nums; }
+.expansion-progress p { margin: 10px 0 0; line-height: 1.6; }
+.parcel-tabs { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; gap: 5px; width: max-content; max-width: calc(100% - 28px); padding: 5px; border: 1px solid #e7e5da; border-radius: 13px; background: #fffdf5ed; }
+.parcel-tabs button { min-height: 36px; border: 0; border-radius: 9px; padding: 7px 11px; background: transparent; font-size: 10px; }
+.parcel-tabs button[aria-pressed="true"] { background: #e7eddf; }
+.expanded #reset { bottom: 110px; }
+.expanded .growth-panel { bottom: 155px; }
+.expanded .planting-controls { bottom: 205px; }
+.expansion-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 28px); width: max-content; padding: 10px 13px; border: 1px solid #e7e5da; border-radius: 13px; background: #fffdf5ed; color: #7d8975; text-align: center; font-size: 11px; line-height: 1.6; }
 .shop-status { display: flex; align-items: center; gap: 6px; min-height: 32px; margin-top: 6px; }
 .shop-status p { flex: 1; margin: 0; color: #879084; font-size: 10px; line-height: 1.5; }
 #cancel-planting { border: 0; background: #e7eddf; border-radius: 8px; min-height: 32px; padding: 6px; font-size: 10px; }
@@ -85,12 +93,7 @@ footer { position: absolute; bottom: 32px; left: 8%; right: 8%; display: flex; j
   .plant-options button > span:first-child { font-size: 18px; }
   .plant-options small { width: 100%; }
   .shop-heading { margin-bottom: 6px; }
-  .seed-tray { bottom: 80px; }
-  .seed-tray { gap: 10px; padding-right: 12px; }
-  .tray-title { font-size: 11px; }
-  .tray-hint { font-size: 9px; max-width: 140px; line-height: 1.5; }
   .plant-button { padding: 12px 10px; font-size: 10px; }
-  #seed { width: 53px; height: 53px; }
   footer { left: 7%; right: 7%; bottom: 24px; font-size: 9px; }
   footer span:first-child { max-width: 105px; }
   footer span:last-child { max-width: 150px; text-align: right; }

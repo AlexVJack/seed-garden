@@ -1,4 +1,10 @@
 export const plantCosts = Object.freeze({ flower: 1, mushroom: 2, bush: 3 });
+export const growthDuration = 26000;
+export const expansionCost = 500;
+export const neighborOffsets = Object.freeze(Array.from({ length: 6 }, (_, direction) => {
+  const distance = 2 * 2.67 * Math.cos(Math.PI / 6);
+  return Object.freeze({ x: Math.cos(direction * Math.PI / 3) * distance, z: Math.sin(direction * Math.PI / 3) * distance });
+}));
 const quarryAngle = Math.atan2(1.15, 1.55);
 
 // Leave an opening in the outer ring for the quarry and space around the tree.

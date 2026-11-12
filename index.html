@@ -32,17 +32,10 @@
       <header class="heading">
         <div class="eyebrow"><span></span><span data-i18n="eyebrow">A LITTLE GARDEN</span></div>
         <h1 data-i18n="heading">It all begins<br />with a <em>seed.</em></h1>
-        <p id="instruction">Drag the seed onto the soil.<br />Give nature a little time.</p>
+        <p id="instruction"></p>
       </header>
       <div id="scene" data-i18n-aria="scene" aria-label="A three-dimensional island of soil. Drag to rotate and scroll to zoom."></div>
       <div id="error" data-i18n="error" role="alert" hidden>Unable to load the 3D scene. Check your internet connection and browser WebGL support, then refresh the page.</div>
-      <section class="seed-tray" data-i18n-aria="planting" aria-label="Plant a tree">
-        <button id="seed" data-i18n-aria="seed" aria-label="Pick up the seed. Drag it onto the soil, or click it and choose a planting spot.">
-          <svg viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="seed-color" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d6a16b"/><stop offset="1" stop-color="#805135"/></linearGradient></defs><path d="M55 13C72 39 65 62 44 68C23 74 12 54 23 36C31 24 45 24 55 13Z" fill="url(#seed-color)"/><path d="M52 23C43 39 34 43 35 59" fill="none" stroke="#edc39a" stroke-width="3" stroke-linecap="round"/></svg>
-        </button>
-        <div><span class="tray-title" id="tray-title" data-i18n="trayTitle">Your first little seed</span><span class="tray-hint" id="tray-hint">Drag or click to plant</span></div>
-        <button class="plant-button" id="plant" data-i18n="plant">Plant</button>
-      </section>
       <section class="growth-panel" data-i18n-aria="growth" hidden aria-label="Tree growth">
         <div class="growth-label"><span data-i18n="growth">Tree growth</span><span id="progress-text">0%</span></div>
         <span id="growth-label" class="sr-only">Life is waking up</span>
@@ -54,17 +47,39 @@
       </button>
       <section id="shop-panel" class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something" hidden>
         <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span><button id="close-shop" type="button" data-i18n-aria="closeShop" aria-label="Close shop">×</button></div>
+        <div class="shop-section-title" data-i18n="treeSeeds">Tree seeds</div>
+        <div class="plant-options tree-options">
+          <button type="button" data-tree-type="apple" aria-pressed="false" disabled><span aria-hidden="true">🌳</span><span data-i18n="apple">Apple tree</span><small data-i18n="free">Free</small></button>
+          <button type="button" data-tree-type="pine" aria-pressed="false" hidden disabled><span aria-hidden="true">🌲</span><span data-i18n="pine">Spruce</span><small data-i18n="free">Free</small></button>
+        </div>
+        <div class="shop-section-title" data-i18n="smallPlants">Plants</div>
         <div class="plant-options">
           <button type="button" data-plant-type="flower" aria-pressed="false" disabled><span aria-hidden="true">🌸</span><span data-i18n="flower">Flower</span><small>1 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="mushroom" aria-pressed="false" disabled><span aria-hidden="true">🍄</span><span data-i18n="mushroom">Mushroom</span><small>2 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="bush" aria-pressed="false" disabled><span aria-hidden="true">🌿</span><span data-i18n="bush">Bush</span><small>3 <span data-i18n="stone">Stone</span></small></button>
         </div>
         <div class="shop-status"><p id="planting-status" role="status"></p></div>
+        <details id="expansion-progress" class="expansion-progress">
+          <summary data-i18n="nextParcel">Next hexagon</summary>
+          <ul>
+            <li><span data-i18n="stone">Stone</span><output id="goal-stone">0 / 500</output></li>
+            <li><span data-i18n="grownApple">Grown apple tree</span><output id="goal-tree">—</output></li>
+            <li><span data-i18n="bush">Bush</span><output id="goal-bush">0 / 3</output></li>
+            <li><span data-i18n="mushroom">Mushroom</span><output id="goal-mushroom">0 / 6</output></li>
+            <li><span data-i18n="flower">Flower</span><output id="goal-flower">0 / 8</output></li>
+          </ul>
+          <p data-i18n="expansionPrice">Expanding costs 500 stone. Plants stay in place.</p>
+        </details>
       </section>
       <div id="planting-controls" class="planting-controls" hidden>
-        <span data-i18n="placePlant">Choose a glowing place</span><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button>
+        <span id="placement-label">Choose a glowing place</span><button class="plant-button" id="plant" data-i18n="plantCenter" hidden>Plant in center</button><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button>
         <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
       </div>
+      <nav id="parcel-tabs" class="parcel-tabs" data-i18n-aria="parcels" aria-label="Garden plots" hidden>
+        <button type="button" data-parcel="0" data-i18n="parcelOne" aria-pressed="true">Plot 1</button>
+        <button type="button" data-parcel="1" data-i18n="parcelTwo" aria-pressed="false">Plot 2</button>
+      </nav>
+      <div id="expansion-hint" class="expansion-hint" role="status" hidden><span data-i18n="expansionReady">Choose a neighboring + to expand for 500 stone.</span><div id="expansion-choices" class="slot-choices" hidden></div></div>
       <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
@@ -73,11 +88,10 @@
       import('./main.js').catch((error) => {
         console.error(error);
         document.querySelector('#error').hidden = false;
-        document.querySelector('#seed').disabled = true;
         document.querySelector('#plant').disabled = true;
         document.querySelector('#mine-stone').disabled = true;
         document.querySelector('#shop-toggle').disabled = true;
-        document.querySelectorAll('[data-plant-type], [data-slot]').forEach((button) => { button.disabled = true; });
+        document.querySelectorAll('[data-plant-type], [data-tree-type], [data-slot], [data-neighbor], [data-parcel]').forEach((button) => { button.disabled = true; });
       });
     </script>
   </body>

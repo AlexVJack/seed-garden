@@ -1,0 +1,103 @@
+import * as THREE from 'three';
+import { createRandom } from './plants.js';
+
+const material = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
+const bark = material('#907052');
+const leaves = ['#8fa96b', '#a8bc7b', '#78955d', '#b8c88b', '#95ae73'].map(material);
+const needles = ['#315643', '#416b4d', '#537957', '#64865c'].map(material);
+const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
+const needleGeometry = new THREE.ConeGeometry(1, 1, 7);
+const up = new THREE.Vector3(0, 1, 0);
+
+export function makeTree(kind, seed) {
+  const random = createRandom(seed);
+  const group = new THREE.Group();
+  const pieces = [];
+  const ownedGeometries = [];
+  function grow(mesh, birth, span, scale = mesh.scale.clone()) {
+    mesh.castShadow = mesh.receiveShadow = true;
+    group.add(mesh);
+    pieces.push({ mesh, birth, span, scale });
+    mesh.scale.setScalar(0);
+  }
+  function segment(origin, direction, length, bottomRadius, topRadius, birth, span) {
+    const geometry = new THREE.CylinderGeometry(topRadius, bottomRadius, length, 7);
+    geometry.translate(0, length / 2, 0);
+    ownedGeometries.push(geometry);
+    const mesh = new THREE.Mesh(geometry, bark);
+    mesh.position.copy(origin);
+    mesh.quaternion.setFromUnitVectors(up, direction);
+    grow(mesh, birth, span, new THREE.Vector3(1, 1, 1));
+  }
+  function foliage(tip, birth, size) {
+    for (let i = 0; i < 5; i++) {
+      const mesh = new THREE.Mesh(leafGeometry, leaves[Math.floor(random() * leaves.length)]);
+      mesh.position.copy(tip).add(new THREE.Vector3((random() - 0.5) * 0.6, (random() - 0.25) * 0.5, (random() - 0.5) * 0.6));
+      mesh.rotation.set(random() * 3, random() * 3, random() * 3);
+      grow(mesh, birth + random() * 0.035, 0.14, new THREE.Vector3(size * 1.2, size * 0.85, size));
+    }
+  }
+  function branch(origin, direction, length, radius, level, birth, span) {
+    const position = origin.clone();
+    const heading = direction.clone().normalize();
+    const step = length / 5;
+    for (let i = 0; i < 5; i++) {
+      heading.add(new THREE.Vector3((random() - 0.5) * 0.16, 0.035, (random() - 0.5) * 0.16)).normalize();
+      const bottomRadius = radius * (1 - i / 5 * 0.55);
+      segment(position, heading, step, bottomRadius, radius * (1 - (i + 1) / 5 * 0.55), birth + span * i / 5, span / 5);
+      position.addScaledVector(heading, step);
+      if (level < 3 && (i === 2 || i === 4)) {
+        const count = level === 0 ? 3 : 2;
+        const baseAngle = random() * Math.PI * 2;
+        for (let child = 0; child < count; child++) {
+          const angle = baseAngle + child * Math.PI * 2 / count + random() * 0.4;
+          const outward = new THREE.Vector3(Math.cos(angle), 0.55 + random() * 0.5, Math.sin(angle));
+          const childDirection = heading.clone().multiplyScalar(0.35).add(outward).normalize();
+          branch(position, childDirection, length * (0.53 + random() * 0.13), bottomRadius * 0.48, level + 1,
+            birth + span * (i + 1) / 5, span * 0.65);
+        }
+      }
+    }
+    if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
+  }
+
+  if (kind === 'pine') {
+    const height = 3.5 + random() * 0.7;
+    const tiers = 9 + Math.floor(random() * 3);
+    const lean = new THREE.Vector3((random() - 0.5) * 0.1, 1, (random() - 0.5) * 0.1).normalize();
+    for (let i = 0; i < 12; i++) {
+      segment(lean.clone().multiplyScalar(height * i / 12), lean, height / 12,
+        0.12 * (1 - i / 12) + 0.012, 0.12 * (1 - (i + 1) / 12) + 0.01, i * 0.035, 0.07);
+    }
+    for (let tier = 0; tier < tiers; tier++) {
+      const fraction = tier / tiers;
+      const y = height * (0.18 + fraction * 0.74);
+      const origin = lean.clone().multiplyScalar(y);
+      const count = 5 + Math.floor(random() * 3);
+      const base = random() * Math.PI * 2;
+      const width = (1.45 - fraction * 1.25) * (0.85 + random() * 0.25);
+      for (let b = 0; b < count; b++) {
+        const angle = base + b * Math.PI * 2 / count + (random() - 0.5) * 0.28;
+        const length = width * (0.75 + random() * 0.3);
+        const heading = new THREE.Vector3(Math.cos(angle), -0.12 + random() * 0.2, Math.sin(angle)).normalize();
+        const birth = 0.15 + fraction * 0.45;
+        segment(origin, heading, length, 0.035 * (1 - fraction) + 0.008, 0.005, birth, 0.15);
+        for (let tuft = 0; tuft < 3; tuft++) {
+          const mesh = new THREE.Mesh(needleGeometry, needles[Math.floor(random() * needles.length)]);
+          mesh.position.copy(origin).addScaledVector(heading, length * (0.3 + tuft * 0.27));
+          const size = (0.21 + (1 - fraction) * 0.18) * (0.85 + random() * 0.3);
+          mesh.rotation.set((random() - 0.5) * 0.35, random() * 6, (random() - 0.5) * 0.35);
+          grow(mesh, birth + tuft * 0.035 + 0.08, 0.18, new THREE.Vector3(size, size * 1.9, size));
+        }
+      }
+    }
+    const tip = new THREE.Mesh(needleGeometry, needles[1]);
+    tip.position.copy(lean).multiplyScalar(height * 0.96);
+    grow(tip, 0.7, 0.2, new THREE.Vector3(0.2, 0.6, 0.2));
+  } else {
+    branch(new THREE.Vector3(), new THREE.Vector3((random() - 0.5) * 0.08, 1, (random() - 0.5) * 0.08), 2.65 + random() * 0.35, 0.17, 0, 0.025, 0.37);
+  }
+  const end = Math.max(...pieces.map((piece) => piece.birth + piece.span));
+  pieces.forEach((piece) => { piece.birth /= end; piece.span /= end; });
+  return { group, pieces, dispose() { ownedGeometries.forEach((geometry) => geometry.dispose()); } };
+}

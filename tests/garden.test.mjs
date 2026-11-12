@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createResources, stoneLimit } from '../resources.js';
-import { plantingSlots } from '../garden-layout.js';
+import { plantingSlots, growthDuration, neighborOffsets } from '../garden-layout.js';
 
 function storage(initial = null) {
   let value = initial;
@@ -94,4 +94,80 @@ test('stone is capped at 10,000, including old saves; spending frees capacity', 
   assert.equal(garden.stone, 9997);
   assert.equal(garden.mineStone(), 9998);
   assert.equal(createResources(storage('{"stone":20000}')).stone, 10000);
+});
+
+function eligibleSave(overrides = {}) {
+  const plants = ['bush', 'bush', 'bush', ...Array(6).fill('mushroom'), ...Array(8).fill('flower')]
+    .map((type, slot) => ({ type, slot, seed: slot + 10 }));
+  return { stone: 500, plants, tree: { x: 0, z: 0, seed: 42, startedAt: 1000 }, ...overrides };
+}
+
+test('expansion requires all five conditions simultaneously, including mature tree', () => {
+  const now = 1000 + growthDuration;
+  assert.equal(createResources(storage(JSON.stringify(eligibleSave()))).canExpand(now), true);
+  for (const overrides of [{ stone: 499 }, { tree: null }, { tree: { x: 0, z: 0, seed: 42, startedAt: 1001 } },
+    ...['bush', 'mushroom', 'flower'].map((type) => ({ plants: eligibleSave().plants.filter((plant, index, all) => index !== all.findIndex((entry) => entry.type === type)) }))]) {
+    const garden = createResources(storage(JSON.stringify(eligibleSave(overrides))));
+    assert.equal(garden.canExpand(now), false);
+    assert.equal(garden.expand(0, now), false);
+    assert.equal(garden.second, null);
+  }
+});
+
+test('each of six directions unlocks one persistent plot and spends exactly 500 stone', () => {
+  neighborOffsets.forEach((_, direction) => {
+    const original = eligibleSave({ stone: 650 });
+    const saved = storage(JSON.stringify(original));
+    const garden = createResources(saved);
+    assert.equal(garden.expand(direction, 1000 + growthDuration), true);
+    assert.equal(garden.stone, 150);
+    assert.deepEqual(garden.plants, original.plants);
+    assert.deepEqual(garden.tree, original.tree);
+    assert.deepEqual(garden.second, { direction, plants: [], tree: null, biome: 'meadow' });
+    const restored = createResources(saved);
+    assert.deepEqual(restored.second, garden.second);
+    assert.equal(restored.canExpand(), false);
+    assert.equal(restored.expand((direction + 1) % 6), false);
+    assert.equal(restored.stone, 150);
+  });
+});
+
+test('invalid directions never spend stone or unlock a plot', () => {
+  const garden = createResources(storage(JSON.stringify(eligibleSave())));
+  for (const direction of [-1, 6, 0.5, '0', null]) assert.equal(garden.expand(direction), false);
+  assert.equal(garden.stone, 500);
+  assert.equal(garden.second, null);
+});
+
+test('second plot has independent slots, persistent conifer biome and tree growth', () => {
+  const saved = storage(JSON.stringify(eligibleSave({ stone: 900 })));
+  const garden = createResources(saved);
+  assert.equal(garden.plant('flower', 0, 12, 1), false);
+  assert.equal(garden.setTree(eligibleSave().tree, 1), false);
+  garden.expand(2);
+  assert.equal(garden.plant('flower', 0, 12, 1), true);
+  assert.equal(garden.parcel(0).plants[0].type, 'bush');
+  assert.equal(garden.parcel(1).plants[0].type, 'flower');
+  const pine = { x: 0.2, z: 0.1, seed: 123, startedAt: Date.now() };
+  assert.equal(garden.setTree(pine, 1), true);
+  assert.equal(garden.parcel(1).biome, 'conifer');
+  const restored = createResources(saved);
+  assert.deepEqual(restored.parcel(1).tree, pine);
+  assert.equal(restored.parcel(1).plants.length, 1);
+  restored.setTree(null, 1);
+  assert.equal(restored.parcel(1).biome, 'conifer');
+  assert.equal(restored.parcel(1).plants.length, 1);
+  assert.deepEqual(restored.tree, eligibleSave().tree);
+  const copy = restored.second;
+  copy.plants[0].seed = 99;
+  assert.equal(restored.second.plants[0].seed, 12);
+});
+
+test('a second plot never unlocks a third, even if resources are replenished', () => {
+  const garden = createResources(storage(JSON.stringify(eligibleSave({ stone: 1000 }))));
+  garden.expand(0);
+  assert.equal(garden.stone, 500);
+  assert.equal(garden.canExpand(), false);
+  assert.equal(garden.expand(1), false);
+  assert.equal(garden.stone, 500);
 });
