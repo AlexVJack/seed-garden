@@ -48,11 +48,11 @@ const bark = material('#907052');
 const leafMaterials = ['#8fa96b', '#a8bc7b', '#78955d', '#b8c88b', '#95ae73'].map((color) => material(color));
 const island = new THREE.Group();
 scene.add(island);
-const soil = new THREE.Mesh(new THREE.CylinderGeometry(2.65, 2.25, 0.65, 11), earth);
+const soil = new THREE.Mesh(new THREE.CylinderGeometry(2.65, 2.25, 0.65, 6), earth);
 soil.position.y = -0.115;
 soil.castShadow = soil.receiveShadow = true;
 island.add(soil);
-const ground = new THREE.Mesh(new THREE.CylinderGeometry(2.67, 2.65, 0.12, 11), turf);
+const ground = new THREE.Mesh(new THREE.CylinderGeometry(2.67, 2.65, 0.12, 6), turf);
 ground.position.y = groundY - 0.06;
 ground.receiveShadow = true;
 island.add(ground);
@@ -78,7 +78,7 @@ function randomSeed() {
 const decorRandom = createRandom(42);
 for (let i = 0; i < 36; i++) {
   const angle = decorRandom() * Math.PI * 2;
-  const radius = 1.85 + decorRandom() * 0.53;
+  const radius = 1.85 + decorRandom() * 0.32;
   const x = Math.cos(angle) * radius;
   const z = Math.sin(angle) * radius;
   if (i % 4 === 0) {
