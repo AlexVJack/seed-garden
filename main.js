@@ -170,6 +170,7 @@ function updateShop() {
   const full = occupied.size === plantingSlots.length;
   if (selectedPlant && (full || resources.stone < plantCosts[selectedPlant])) selectedPlant = null;
   $('#stone-count').textContent = resources.stone;
+  $('#stone-count').dataset.digits = String(resources.stone).length;
   $('#slots-used').textContent = `${occupied.size} / ${plantingSlots.length}`;
   document.querySelectorAll('[data-plant-type]').forEach((button) => {
     const type = button.dataset.plantType;

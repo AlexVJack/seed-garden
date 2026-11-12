@@ -1,6 +1,7 @@
 import { plantCosts, plantingSlots } from './garden-layout.js';
 
 const storageKey = 'seed-garden-resources';
+export const stoneLimit = 10000;
 const validSeed = (seed) => Number.isInteger(seed) && seed >= 0 && seed <= 0xffffffff;
 const validTree = (tree) => tree && validSeed(tree.seed) && Number.isSafeInteger(tree.startedAt) && tree.startedAt > 0
   && Number.isFinite(tree.x) && Number.isFinite(tree.z) && Math.hypot(tree.x, tree.z) <= 0.55;
@@ -11,7 +12,7 @@ export function createResources(storage) {
   let tree = null;
   try {
     const saved = JSON.parse(storage.getItem(storageKey));
-    if (Number.isSafeInteger(saved?.stone) && saved.stone >= 0) stone = saved.stone;
+    if (Number.isSafeInteger(saved?.stone) && saved.stone >= 0) stone = Math.min(saved.stone, stoneLimit);
     const occupied = new Set();
     if (Array.isArray(saved?.plants)) {
       plants = saved.plants.filter((plant) => {
@@ -34,7 +35,7 @@ export function createResources(storage) {
     get plants() { return plants.map((plant) => ({ ...plant })); },
     get tree() { return tree ? { ...tree } : null; },
     mineStone() {
-      if (stone < Number.MAX_SAFE_INTEGER) stone += 1;
+      if (stone < stoneLimit) stone += 1;
       save();
       return stone;
     },

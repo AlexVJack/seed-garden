@@ -23,8 +23,10 @@
         <button type="button" data-language="uk" lang="uk" aria-label="Українська" aria-pressed="false">УК</button>
       </nav>
       <section class="resources" data-i18n-aria="resources" aria-label="Resources">
-        <div class="resource-total"><span class="stone-icon" aria-hidden="true">◆</span><span data-i18n="stone">Stone</span><output id="stone-count" aria-live="polite" aria-atomic="true">0</output></div>
-        <p data-i18n="stoneHint">Click the large grey rock: +1 stone</p>
+        <div class="resource-total">
+          <svg class="stone-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="m9 8 17-4 10 16-7 15H11L3 23Z" fill="#969ca1"/><path d="m9 8 13 11 4-15Z" fill="#b0b5b8"/><path d="m22 19 14 1-7 15-10-5Z" fill="#747b81"/><path d="M3 23 9 8l13 11-3 11-8 5Z" fill="#858c92"/></svg>
+          <output id="stone-count" data-i18n-aria="stone" aria-label="Stone" aria-live="polite" aria-atomic="true">0</output>
+        </div>
         <button id="mine-stone" class="sr-only" data-i18n="mineStone">Mine stone (+1)</button>
       </section>
       <header class="heading">

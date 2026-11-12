@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createResources } from '../resources.js';
+import { createResources, stoneLimit } from '../resources.js';
 import { plantingSlots } from '../garden-layout.js';
 
 function storage(initial = null) {
@@ -81,4 +81,17 @@ test('invalid saved entries are ignored and unavailable storage is supported', (
   temporary.mineStone();
   assert.equal(temporary.plant('flower', 0, 5), true);
   assert.equal(temporary.plants.length, 1);
+});
+
+test('stone is capped at 10,000, including old saves; spending frees capacity', () => {
+  assert.equal(stoneLimit, 10000);
+  const saved = storage('{"stone":9999}');
+  const garden = createResources(saved);
+  assert.equal(garden.mineStone(), 10000);
+  assert.equal(garden.mineStone(), 10000);
+  assert.equal(createResources(saved).stone, 10000);
+  assert.equal(garden.plant('bush', 0, 1), true);
+  assert.equal(garden.stone, 9997);
+  assert.equal(garden.mineStone(), 9998);
+  assert.equal(createResources(storage('{"stone":20000}')).stone, 10000);
 });
