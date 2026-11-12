@@ -224,6 +224,7 @@ function plant(point) {
   seedButton.classList.remove('selected');
   $('.seed-tray').hidden = true;
   $('.growth-panel').hidden = false;
+  $('#reset').hidden = false;
   setUiState({ instruction: 'growing', hint: 'hint' });
   makeTree(point);
   plantedAt = performance.now();
@@ -334,6 +335,7 @@ $('#reset').addEventListener('click', () => {
   finished = false;
   $('.seed-tray').hidden = false;
   $('.growth-panel').hidden = true;
+  $('#reset').hidden = true;
   $('#progress').value = 0;
   $('#progress-text').textContent = '0%';
   setUiState({ growth: 'awakening', hint: 'hint', instruction: 'idle' });
@@ -373,6 +375,7 @@ renderer.setAnimationLoop((now) => {
     setUiState({ growth: progress < 0.2 ? 'awakening' : progress < 0.55 ? 'reaching' : progress < 1 ? 'unfolding' : 'complete' });
     if (progress === 1 && !finished) {
       finished = true;
+      $('.growth-panel').hidden = true;
       setUiState({ instruction: 'grown' });
       announce('finished');
     }

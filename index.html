@@ -42,10 +42,11 @@
         <button class="plant-button" id="plant" data-i18n="plant">Plant</button>
       </section>
       <section class="growth-panel" data-i18n-aria="growth" hidden aria-label="Tree growth">
-        <div class="growth-label"><span id="growth-label">Life is waking up</span><span id="progress-text">0%</span></div>
+        <div class="growth-label"><span data-i18n="growth">Tree growth</span><span id="progress-text">0%</span></div>
+        <span id="growth-label" class="sr-only">Life is waking up</span>
         <progress id="progress" max="1" value="0" data-i18n-aria="progress" aria-label="Tree growth progress"></progress>
-        <button id="reset"><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
       </section>
+      <button id="reset" hidden><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
       <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
