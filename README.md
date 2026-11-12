@@ -30,7 +30,7 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 ## Plants and saved gardens
 
 - Click the large grey rock to mine **stone**.
-- A flower costs **1 stone**, a mushroom **2**, and a bush **3**. Select a plant, then tap a glowing free place.
+- Open the shop with the grey bag button on the left. A flower costs **1 stone**, a mushroom **2**, and a bush **3**. Selecting a plant hides the shop and highlights free places. Tap a place to plant, or **Cancel** to leave planting mode.
 - There are **24 places** around the central tree. Each plant occupies one; removal and moving are not available yet.
 - Scroll or pinch to zoom closer for easier placement. **Escape** also cancels plant selection.
 - The tree's seed, position and planting time, other plants, and stone are saved locally in your browser. Tree growth accounts for time spent away from the page.

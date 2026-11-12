@@ -180,10 +180,26 @@ function updateShop() {
   slotMarkers.children.forEach((mesh, index) => { mesh.visible = !occupied.has(index); });
   slotButtons.forEach((button, index) => { button.disabled = !selectedPlant || occupied.has(index); });
   $('#cancel-planting').hidden = !selectedPlant;
+  $('#planting-controls').hidden = !selectedPlant || !$('#shop-panel').hidden;
+  $('#shop-toggle').classList.toggle('planting', Boolean(selectedPlant));
   $('#slot-choices').hidden = !selectedPlant;
   $('.seed-tray').hidden = Boolean(selectedPlant) || plantedAt !== null;
   setUiState({ plantingStatus: full ? 'gardenFull' : selectedPlant ? 'chooseSpot' : resources.stone < 1 ? 'needStone' : 'choosePlant' });
 }
+
+function setShopOpen(open) {
+  const panel = $('#shop-panel');
+  const toggle = $('#shop-toggle');
+  const restoreFocus = !open && panel.contains(document.activeElement);
+  panel.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.dataset.i18nAria = open ? 'closeShop' : 'openShop';
+  toggle.setAttribute('aria-label', translate(toggle.dataset.i18nAria));
+  $('#planting-controls').hidden = open || !selectedPlant;
+  if (restoreFocus) toggle.focus({ preventScroll: true });
+}
+$('#shop-toggle').addEventListener('click', () => setShopOpen($('#shop-panel').hidden));
+$('#close-shop').addEventListener('click', () => setShopOpen(false));
 
 function selectPlant(type) {
   selectedPlant = selectedPlant === type ? null : type;
@@ -199,11 +215,16 @@ function selectPlant(type) {
     controls.update();
   }
   updateShop();
+  setShopOpen(false);
 }
 document.querySelectorAll('[data-plant-type]').forEach((button) => {
   button.addEventListener('click', () => selectPlant(button.dataset.plantType));
 });
-$('#cancel-planting').addEventListener('click', () => { selectedPlant = null; updateShop(); });
+$('#cancel-planting').addEventListener('click', () => {
+  selectedPlant = null;
+  updateShop();
+  $('#shop-toggle').focus({ preventScroll: true });
+});
 
 function plantItem(slot) {
   if (!selectedPlant) return;
@@ -407,6 +428,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   const gesture = scenePointers.get(event.pointerId);
   scenePointers.delete(event.pointerId);
   if (!gesture || gesture.moved || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) return;
+  if (!$('#shop-panel').hidden) { setShopOpen(false); return; }
   if (pointsAtQuarry(event)) {
     if (gesture.quarry) mineStone();
     return;
@@ -422,6 +444,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
 }, { capture: true });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
+    setShopOpen(false);
     armed = false;
     marker.visible = false;
     seedButton.classList.remove('selected');

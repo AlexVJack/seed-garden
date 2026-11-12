@@ -47,16 +47,22 @@
         <progress id="progress" max="1" value="0" data-i18n-aria="progress" aria-label="Tree growth progress"></progress>
       </section>
       <button id="reset" hidden><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
-      <section class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something">
-        <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span></div>
+      <button id="shop-toggle" type="button" aria-controls="shop-panel" aria-expanded="false" data-i18n-aria="openShop" aria-label="Open shop">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M14 13V10a6 6 0 0 1 12 0v3" fill="none" stroke="#747a80" stroke-width="3" stroke-linecap="round"/><path d="m9 12 22 0 4 20-7 4H12l-7-4Z" fill="#969ca1"/><path d="m9 12 6 7-3 17-7-4Z" fill="#858b90"/><path d="m31 12-6 7 3 17 7-4Z" fill="#a9aeb2"/><path d="M14 12v4m12-4v4" stroke="#687078" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+      <section id="shop-panel" class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something" hidden>
+        <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span><button id="close-shop" type="button" data-i18n-aria="closeShop" aria-label="Close shop">×</button></div>
         <div class="plant-options">
           <button type="button" data-plant-type="flower" aria-pressed="false" disabled><span aria-hidden="true">🌸</span><span data-i18n="flower">Flower</span><small>1 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="mushroom" aria-pressed="false" disabled><span aria-hidden="true">🍄</span><span data-i18n="mushroom">Mushroom</span><small>2 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="bush" aria-pressed="false" disabled><span aria-hidden="true">🌿</span><span data-i18n="bush">Bush</span><small>3 <span data-i18n="stone">Stone</span></small></button>
         </div>
-        <div class="shop-status"><p id="planting-status" role="status"></p><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button></div>
-        <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
+        <div class="shop-status"><p id="planting-status" role="status"></p></div>
       </section>
+      <div id="planting-controls" class="planting-controls" hidden>
+        <span data-i18n="placePlant">Choose a glowing place</span><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button>
+        <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
+      </div>
       <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
@@ -68,6 +74,7 @@
         document.querySelector('#seed').disabled = true;
         document.querySelector('#plant').disabled = true;
         document.querySelector('#mine-stone').disabled = true;
+        document.querySelector('#shop-toggle').disabled = true;
         document.querySelectorAll('[data-plant-type], [data-slot]').forEach((button) => { button.disabled = true; });
       });
     </script>
