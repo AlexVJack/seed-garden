@@ -24,7 +24,7 @@ h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-siz
 h1 em { color: #7b946a; font-weight: 500; }
 .heading p { font-size: 13px; line-height: 1.9; color: #879084; }
 #scene { position: absolute; inset: 0; touch-action: none; }
-#scene canvas { display: block; width: 100%; height: 100%; }
+#scene canvas { display: block; width: 100%; height: 100%; -webkit-tap-highlight-color: transparent; }
 .seed-tray, .growth-panel { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3; background: #fffdf5e8; border: 1px solid #e7e5da; box-shadow: 0 12px 40px #5664420b; border-radius: 22px; backdrop-filter: blur(12px); }
 .seed-tray { display: flex; align-items: center; gap: 17px; padding: 14px 20px 14px 12px; width: max-content; max-width: calc(100% - 36px); }
 #seed { width: 64px; height: 64px; flex-shrink: 0; border: 1px solid #e9e5d7; border-radius: 17px; background: #f2eedf; touch-action: none; cursor: grab; transition: background .2s, box-shadow .2s; }
