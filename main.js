@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { announce, setUiState } from './i18n.js';
+import { announce, setUiState, translate } from './i18n.js';
 import { createResources } from './resources.js';
+import { plantCosts, plantingSlots } from './garden-layout.js';
+import { createRandom, makePlant } from './plants.js';
 
 const $ = (selector) => document.querySelector(selector);
 const container = $('#scene');
@@ -30,7 +32,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1.8, 0);
 controls.enableDamping = true;
 controls.enablePan = false;
-controls.minDistance = 8;
+controls.minDistance = 3.5;
 controls.maxDistance = 18;
 controls.minPolarAngle = 0.4;
 controls.maxPolarAngle = Math.PI / 2.15;
@@ -67,16 +69,6 @@ floor.position.y = -0.46;
 floor.receiveShadow = true;
 scene.add(floor);
 
-// Cryptographic randomness selects a seed; a deterministic PRNG makes each tree coherent.
-function createRandom(seed) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-}
 function randomSeed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 }
@@ -87,6 +79,8 @@ for (let i = 0; i < 36; i++) {
   const radius = 1.85 + decorRandom() * 0.32;
   const x = Math.cos(angle) * radius;
   const z = Math.sin(angle) * radius;
+  if (i !== 0 && (plantingSlots.some((slot) => Math.hypot(slot.x - x, slot.z - z) < 0.32)
+    || Math.hypot(x - 1.55, z - 1.15) < 0.6)) continue;
   if (i % 4 === 0) {
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.09 + decorRandom() * 0.08, 0), stone);
     rock.position.set(x, groundY + 0.04, z);
@@ -131,7 +125,7 @@ function plantingPoint(event) {
   aimPointer(event);
   const point = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
   // Keep the growing crown inside the diorama and away from its edge.
-  return point && Math.hypot(point.x, point.z) < 1.45 ? point : null;
+  return point && Math.hypot(point.x, point.z) <= 0.55 ? point : null;
 }
 
 let tree = null;
@@ -141,22 +135,122 @@ let armed = false;
 let drag = null;
 let finished = false;
 let minedAt = -Infinity;
+let selectedPlant = null;
+const plantedItems = new THREE.Group();
+scene.add(plantedItems);
+const slotMarkers = new THREE.Group();
+scene.add(slotMarkers);
+const slotGeometry = new THREE.RingGeometry(0.12, 0.17, 20);
+const slotMaterial = new THREE.MeshBasicMaterial({ color: '#eef8bd', transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+const slotButtons = plantingSlots.map((slot, index) => {
+  const mesh = new THREE.Mesh(slotGeometry, slotMaterial);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(slot.x, groundY + 0.015, slot.z);
+  slotMarkers.add(mesh);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.slot = index;
+  button.textContent = `${translate('slot')} ${index + 1}`;
+  button.addEventListener('click', () => plantItem(index));
+  $('#slot-choices').append(button);
+  return button;
+});
+
+function showPlant(plant) {
+  const slot = plantingSlots[plant.slot];
+  const group = makePlant(plant.type, plant.seed);
+  group.position.set(slot.x, groundY, slot.z);
+  plantedItems.add(group);
+}
+resources.plants.forEach(showPlant);
+
+function updateShop() {
+  const plants = resources.plants;
+  const occupied = new Set(plants.map((plant) => plant.slot));
+  const full = occupied.size === plantingSlots.length;
+  if (selectedPlant && (full || resources.stone < plantCosts[selectedPlant])) selectedPlant = null;
+  $('#stone-count').textContent = resources.stone;
+  $('#slots-used').textContent = `${occupied.size} / ${plantingSlots.length}`;
+  document.querySelectorAll('[data-plant-type]').forEach((button) => {
+    const type = button.dataset.plantType;
+    button.disabled = full || resources.stone < plantCosts[type];
+    button.setAttribute('aria-pressed', String(type === selectedPlant));
+  });
+  slotMarkers.visible = Boolean(selectedPlant);
+  slotMarkers.children.forEach((mesh, index) => { mesh.visible = !occupied.has(index); });
+  slotButtons.forEach((button, index) => { button.disabled = !selectedPlant || occupied.has(index); });
+  $('#cancel-planting').hidden = !selectedPlant;
+  $('#slot-choices').hidden = !selectedPlant;
+  $('.seed-tray').hidden = Boolean(selectedPlant) || plantedAt !== null;
+  setUiState({ plantingStatus: full ? 'gardenFull' : selectedPlant ? 'chooseSpot' : resources.stone < 1 ? 'needStone' : 'choosePlant' });
+}
+
+function selectPlant(type) {
+  selectedPlant = selectedPlant === type ? null : type;
+  armed = false;
+  marker.visible = false;
+  seedButton.classList.remove('selected');
+  setUiState({ hint: 'hint' });
+  if (selectedPlant) {
+    // Aim at the ground while placing small plants, preserving the camera distance.
+    const shift = new THREE.Vector3(0, 0.5, 0).sub(controls.target);
+    camera.position.add(shift);
+    controls.target.add(shift);
+    controls.update();
+  }
+  updateShop();
+}
+document.querySelectorAll('[data-plant-type]').forEach((button) => {
+  button.addEventListener('click', () => selectPlant(button.dataset.plantType));
+});
+$('#cancel-planting').addEventListener('click', () => { selectedPlant = null; updateShop(); });
+
+function plantItem(slot) {
+  if (!selectedPlant) return;
+  const type = selectedPlant;
+  const seed = randomSeed();
+  if (!resources.plant(type, slot, seed)) { updateShop(); return; }
+  showPlant({ type, slot, seed });
+  updateShop();
+  announce('itemPlanted');
+}
+
+function slotAtPointer(event) {
+  if (!selectedPlant) return null;
+  // Compare projected centers, so hit areas stay finger-sized at any zoom level.
+  const rect = renderer.domElement.getBoundingClientRect();
+  const occupied = new Set(resources.plants.map((plant) => plant.slot));
+  let closest = null;
+  let distance = event.pointerType === 'touch' ? 28 : 20;
+  plantingSlots.forEach((slot, index) => {
+    if (occupied.has(index)) return;
+    const projected = new THREE.Vector3(slot.x, groundY, slot.z).project(camera);
+    if (projected.z < -1 || projected.z > 1) return;
+    const x = rect.left + (projected.x + 1) * rect.width / 2;
+    const y = rect.top + (1 - projected.y) * rect.height / 2;
+    const d = Math.hypot(event.clientX - x, event.clientY - y);
+    if (d < distance) { closest = index; distance = d; }
+  });
+  return closest;
+}
+
 function pointsAtQuarry(event) {
   aimPointer(event);
-  const hit = raycaster.intersectObjects(tree ? [island, tree] : [island], true)[0];
+  const hit = raycaster.intersectObjects(tree ? [island, plantedItems, tree] : [island, plantedItems], true)[0];
   return hit?.object === quarry;
 }
 function mineStone() {
   $('#stone-count').textContent = resources.mineStone();
   minedAt = performance.now();
+  updateShop();
 }
 $('#mine-stone').addEventListener('click', mineStone);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const up = new THREE.Vector3(0, 1, 0);
 const smooth = (value) => value * value * (3 - 2 * value);
 
-function makeTree(point) {
-  const random = createRandom(randomSeed());
+function makeTree(point, seed) {
+  const random = createRandom(seed);
   tree = new THREE.Group();
   tree.position.copy(point);
   scene.add(tree);
@@ -217,23 +311,30 @@ function makeTree(point) {
   }
 }
 
-function plant(point) {
+function plant(point, saved = null) {
   if (plantedAt !== null) return;
+  selectedPlant = null;
+  updateShop();
   armed = false;
   marker.visible = false;
   seedButton.classList.remove('selected');
   $('.seed-tray').hidden = true;
-  $('.growth-panel').hidden = false;
+  const record = saved || { x: point.x, z: point.z, seed: randomSeed(), startedAt: Date.now() };
+  if (!saved) resources.setTree(record);
+  const elapsed = Math.max(0, Date.now() - record.startedAt);
+  $('.growth-panel').hidden = elapsed >= duration * 1000;
   $('#reset').hidden = false;
-  setUiState({ instruction: 'growing', hint: 'hint' });
-  makeTree(point);
-  plantedAt = performance.now();
-  finished = false;
-  announce('planted');
+  setUiState({ instruction: elapsed >= duration * 1000 ? 'grown' : 'growing', hint: 'hint' });
+  makeTree(point, record.seed);
+  plantedAt = record.startedAt;
+  finished = elapsed >= duration * 1000;
+  if (!saved) announce('planted');
 }
 
 function armSeed() {
   if (plantedAt !== null) return;
+  selectedPlant = null;
+  updateShop();
   armed = !armed;
   seedButton.classList.toggle('selected', armed);
   setUiState({ hint: armed ? 'armedHint' : 'hint' });
@@ -286,7 +387,7 @@ $('#plant').addEventListener('click', () => plant(new THREE.Vector3(0, groundY, 
 renderer.domElement.addEventListener('pointermove', (event) => {
   const gesture = scenePointers.get(event.pointerId);
   if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) gesture.moved = true;
-  renderer.domElement.style.cursor = !drag && pointsAtQuarry(event) ? 'pointer' : '';
+  renderer.domElement.style.cursor = !drag && (pointsAtQuarry(event) || slotAtPointer(event) !== null) ? 'pointer' : '';
   if (!armed) return;
   const point = plantingPoint(event);
   marker.visible = Boolean(point);
@@ -310,6 +411,11 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     if (gesture.quarry) mineStone();
     return;
   }
+  if (selectedPlant) {
+    const slot = slotAtPointer(event);
+    if (slot !== null) plantItem(slot);
+    return;
+  }
   if (!armed) return;
   const point = plantingPoint(event);
   if (point) plant(point);
@@ -320,6 +426,8 @@ document.addEventListener('keydown', (event) => {
     marker.visible = false;
     seedButton.classList.remove('selected');
     setUiState({ hint: 'hint' });
+    selectedPlant = null;
+    updateShop();
   }
 });
 $('#reset').addEventListener('click', () => {
@@ -333,6 +441,9 @@ $('#reset').addEventListener('click', () => {
   pieces = [];
   plantedAt = null;
   finished = false;
+  resources.setTree(null);
+  selectedPlant = null;
+  updateShop();
   $('.seed-tray').hidden = false;
   $('.growth-panel').hidden = true;
   $('#reset').hidden = true;
@@ -355,12 +466,15 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 resize();
+updateShop();
+const savedTree = resources.tree;
+if (savedTree) plant(new THREE.Vector3(savedTree.x, groundY, savedTree.z), savedTree);
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 renderer.setAnimationLoop((now) => {
   controls.update();
   quarry.material.emissiveIntensity = Math.max(0, 1 - (now - minedAt) / 220) * 0.65;
   if (plantedAt !== null) {
-    const progress = Math.min((now - plantedAt) / (duration * 1000), 1);
+    const progress = Math.max(0, Math.min((Date.now() - plantedAt) / (duration * 1000), 1));
     for (const piece of pieces) {
       const fraction = Math.max(0, Math.min((progress - piece.birth) / piece.span, 1));
       piece.mesh.visible = fraction > 0;

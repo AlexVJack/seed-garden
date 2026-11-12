@@ -47,6 +47,16 @@
         <progress id="progress" max="1" value="0" data-i18n-aria="progress" aria-label="Tree growth progress"></progress>
       </section>
       <button id="reset" hidden><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
+      <section class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something">
+        <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span></div>
+        <div class="plant-options">
+          <button type="button" data-plant-type="flower" aria-pressed="false" disabled><span aria-hidden="true">🌸</span><span data-i18n="flower">Flower</span><small>1 <span data-i18n="stone">Stone</span></small></button>
+          <button type="button" data-plant-type="mushroom" aria-pressed="false" disabled><span aria-hidden="true">🍄</span><span data-i18n="mushroom">Mushroom</span><small>2 <span data-i18n="stone">Stone</span></small></button>
+          <button type="button" data-plant-type="bush" aria-pressed="false" disabled><span aria-hidden="true">🌿</span><span data-i18n="bush">Bush</span><small>3 <span data-i18n="stone">Stone</span></small></button>
+        </div>
+        <div class="shop-status"><p id="planting-status" role="status"></p><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button></div>
+        <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
+      </section>
       <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
@@ -58,6 +68,7 @@
         document.querySelector('#seed').disabled = true;
         document.querySelector('#plant').disabled = true;
         document.querySelector('#mine-stone').disabled = true;
+        document.querySelectorAll('[data-plant-type], [data-slot]').forEach((button) => { button.disabled = true; });
       });
     </script>
   </body>

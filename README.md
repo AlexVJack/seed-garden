@@ -27,6 +27,23 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - **New seed** clears the current tree so you can grow another.
 - **Escape** cancels seed selection.
 
+## Plants and saved gardens
+
+- Click the large grey rock to mine **stone**.
+- A flower costs **1 stone**, a mushroom **2**, and a bush **3**. Select a plant, then tap a glowing free place.
+- There are **24 places** around the central tree. Each plant occupies one; removal and moving are not available yet.
+- Scroll or pinch to zoom closer for easier placement. **Escape** also cancels plant selection.
+- The tree's seed, position and planting time, other plants, and stone are saved locally in your browser. Tree growth accounts for time spent away from the page.
+- **New seed** replaces only the tree, preserving purchased plants and stone. Clearing site data removes the saved garden. If browser storage is unavailable, the garden only lasts until reload.
+
+## Checks
+
+Test prices, the 24 places, and saved state with Node.js 22+:
+
+```bash
+node --experimental-default-type=module --test tests/garden.test.mjs
+```
+
 ## Languages
 
 The interface supports English and Ukrainian. On your first visit, Ukrainian is selected if it appears in your browser's language preferences; otherwise, English is used. The **EN / УК** switch remembers your choice for future visits when browser storage is available. Switching languages never reloads the page or interrupts tree growth.

@@ -28,6 +28,18 @@ const messages = {
     stone: 'Stone',
     stoneHint: 'Click the large grey rock: +1 stone',
     mineStone: 'Mine stone (+1)',
+    plantShop: 'Plant something',
+    places: 'Places',
+    flower: 'Flower',
+    mushroom: 'Mushroom',
+    bush: 'Bush',
+    slot: 'Place',
+    choosePlant: 'Choose a plant to see free places.',
+    chooseSpot: 'Tap a glowing place. Pinch to zoom in.',
+    needStone: 'Mine the grey rock to buy plants.',
+    gardenFull: 'All 24 places are planted.',
+    cancel: 'Cancel',
+    itemPlanted: 'Your new plant is planted and saved.',
     planted: 'The seed is planted. Your tree will grow in about 26 seconds.',
     pickedUp: 'Seed selected. Click the center of the island or the Plant button.',
     putBack: 'The seed has been put back.',
@@ -64,6 +76,18 @@ const messages = {
     stone: 'Камінь',
     stoneHint: 'Натисни на великий сірий камінь: +1 stone',
     mineStone: 'Добути камінь (+1)',
+    plantShop: 'Що посадимо?',
+    places: 'Місця',
+    flower: 'Квіточка',
+    mushroom: 'Грибочок',
+    bush: 'Кущ',
+    slot: 'Місце',
+    choosePlant: 'Обери рослину — побачиш вільні місця.',
+    chooseSpot: 'Натисни на світле місце. Наближай двома пальцями.',
+    needStone: 'Добувай каміння із сірої скелі для посадок.',
+    gardenFull: 'Усі 24 місця вже засаджені.',
+    cancel: 'Скасувати',
+    itemPlanted: 'Нову рослину посаджено та збережено.',
     planted: 'Насінину посаджено. Дерево виросте приблизно за 26 секунд.',
     pickedUp: 'Насінину взято. Натисни на центр острівця або кнопку «Посадити».',
     putBack: 'Насінину повернуто.',
@@ -83,7 +107,7 @@ function initialLanguage() {
 }
 
 let language = initialLanguage();
-const state = { instruction: 'idle', hint: 'hint', growth: 'awakening', announcement: null };
+const state = { instruction: 'idle', hint: 'hint', growth: 'awakening', announcement: null, plantingStatus: 'choosePlant' };
 export function translate(key) { return messages[language][key]; }
 
 function renderState() {
@@ -92,6 +116,7 @@ function renderState() {
   document.querySelector('#tray-hint').textContent = translate(state.hint);
   document.querySelector('#growth-label').textContent = translate(state.growth);
   document.querySelector('#announcement').textContent = state.announcement ? translate(state.announcement) : '';
+  document.querySelector('#planting-status').textContent = translate(state.plantingStatus);
 }
 
 export function setUiState(update) {
@@ -113,6 +138,9 @@ function renderLanguage() {
   });
   document.querySelectorAll('[data-language]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.language === language));
+  });
+  document.querySelectorAll('[data-slot]').forEach((button) => {
+    button.textContent = `${translate('slot')} ${Number(button.dataset.slot) + 1}`;
   });
   renderState();
 }
