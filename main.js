@@ -1,10 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { announce, setUiState } from './i18n.js';
+import { createResources } from './resources.js';
 
 const $ = (selector) => document.querySelector(selector);
 const container = $('#scene');
 const seedButton = $('#seed');
+let resourceStorage;
+try { resourceStorage = window.localStorage; } catch { /* Storage may be unavailable. */ }
+const resources = createResources(resourceStorage);
+$('#stone-count').textContent = resources.stone;
 const duration = 26;
 const groundY = 0.26;
 const scene = new THREE.Scene();
@@ -76,6 +81,7 @@ function randomSeed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 const decorRandom = createRandom(42);
+let quarry;
 for (let i = 0; i < 36; i++) {
   const angle = decorRandom() * Math.PI * 2;
   const radius = 1.85 + decorRandom() * 0.32;
@@ -87,6 +93,12 @@ for (let i = 0; i < 36; i++) {
     rock.scale.set(1.3, 0.6, 1);
     rock.rotation.set(decorRandom(), decorRandom() * 6, decorRandom());
     rock.castShadow = true;
+    if (i === 0) {
+      rock.material = material('#85898d', { emissive: '#bac4cf', emissiveIntensity: 0 });
+      rock.scale.set(3.2, 2.6, 2.8);
+      rock.position.set(1.55, groundY + 0.23, 1.15);
+      quarry = rock;
+    }
     island.add(rock);
   } else {
     for (let blade = 0; blade < 3; blade++) {
@@ -110,10 +122,13 @@ scene.add(marker);
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -groundY);
-function plantingPoint(event) {
+function aimPointer(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
   raycaster.setFromCamera(pointer, camera);
+}
+function plantingPoint(event) {
+  aimPointer(event);
   const point = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
   // Keep the growing crown inside the diorama and away from its edge.
   return point && Math.hypot(point.x, point.z) < 1.45 ? point : null;
@@ -125,6 +140,17 @@ let plantedAt = null;
 let armed = false;
 let drag = null;
 let finished = false;
+let minedAt = -Infinity;
+function pointsAtQuarry(event) {
+  aimPointer(event);
+  const hit = raycaster.intersectObjects(tree ? [island, tree] : [island], true)[0];
+  return hit?.object === quarry;
+}
+function mineStone() {
+  $('#stone-count').textContent = resources.mineStone();
+  minedAt = performance.now();
+}
+$('#mine-stone').addEventListener('click', mineStone);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const up = new THREE.Vector3(0, 1, 0);
 const smooth = (value) => value * value * (3 - 2 * value);
@@ -257,17 +283,36 @@ seedButton.addEventListener('pointercancel', (event) => endDrag(event, true));
 seedButton.addEventListener('click', (event) => { if (event.detail === 0) armSeed(); });
 $('#plant').addEventListener('click', () => plant(new THREE.Vector3(0, groundY, 0)));
 renderer.domElement.addEventListener('pointermove', (event) => {
+  const gesture = scenePointers.get(event.pointerId);
+  if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) gesture.moved = true;
+  renderer.domElement.style.cursor = !drag && pointsAtQuarry(event) ? 'pointer' : '';
   if (!armed) return;
   const point = plantingPoint(event);
   marker.visible = Boolean(point);
   if (point) marker.position.set(point.x, groundY + 0.012, point.z);
 });
 renderer.domElement.addEventListener('pointerleave', () => { if (!drag) marker.visible = false; });
-renderer.domElement.addEventListener('click', (event) => {
+// Distinguish a tap from orbiting, including multi-touch and cancelled gestures.
+const scenePointers = new Map();
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  scenePointers.set(event.pointerId, { x: event.clientX, y: event.clientY, moved: false, quarry: pointsAtQuarry(event) });
+  if (scenePointers.size > 1) scenePointers.forEach((gesture) => { gesture.moved = true; });
+});
+renderer.domElement.addEventListener('pointercancel', (event) => scenePointers.delete(event.pointerId));
+renderer.domElement.addEventListener('lostpointercapture', (event) => scenePointers.delete(event.pointerId));
+renderer.domElement.addEventListener('pointerup', (event) => {
+  const gesture = scenePointers.get(event.pointerId);
+  scenePointers.delete(event.pointerId);
+  if (!gesture || gesture.moved || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) return;
+  if (pointsAtQuarry(event)) {
+    if (gesture.quarry) mineStone();
+    return;
+  }
   if (!armed) return;
   const point = plantingPoint(event);
   if (point) plant(point);
-});
+}, { capture: true });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     armed = false;
@@ -311,6 +356,7 @@ resize();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 renderer.setAnimationLoop((now) => {
   controls.update();
+  quarry.material.emissiveIntensity = Math.max(0, 1 - (now - minedAt) / 220) * 0.65;
   if (plantedAt !== null) {
     const progress = Math.min((now - plantedAt) / (duration * 1000), 1);
     for (const piece of pieces) {
