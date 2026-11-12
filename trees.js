@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRandom } from './plants.js';
 
 const material = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
@@ -99,5 +100,28 @@ export function makeTree(kind, seed) {
   }
   const end = Math.max(...pieces.map((piece) => piece.birth + piece.span));
   pieces.forEach((piece) => { piece.birth /= end; piece.span /= end; });
-  return { group, pieces, dispose() { ownedGeometries.forEach((geometry) => geometry.dispose()); } };
+  function finish() {
+    if (!pieces.length) return;
+    // Mature trees no longer need a draw call for every branch segment and leaf.
+    const batches = new Map();
+    for (const { mesh } of pieces) {
+      mesh.updateMatrix();
+      const geometries = batches.get(mesh.material) || [];
+      geometries.push(mesh.geometry.clone().applyMatrix4(mesh.matrix));
+      batches.set(mesh.material, geometries);
+    }
+    group.clear();
+    ownedGeometries.forEach((geometry) => geometry.dispose());
+    ownedGeometries.length = 0;
+    for (const [surface, geometries] of batches) {
+      const geometry = mergeGeometries(geometries);
+      geometries.forEach((part) => part.dispose());
+      ownedGeometries.push(geometry);
+      const mesh = new THREE.Mesh(geometry, surface);
+      mesh.castShadow = mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+    pieces.length = 0;
+  }
+  return { group, pieces, finish, dispose() { ownedGeometries.forEach((geometry) => geometry.dispose()); } };
 }

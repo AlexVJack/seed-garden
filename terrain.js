@@ -9,7 +9,7 @@ const groundGeometry = new THREE.CylinderGeometry(2.67, 2.65, 0.12, 6);
 const grassGeometry = new THREE.ConeGeometry(0.025, 1, 3);
 const rockMaterial = material('#c5c4ae');
 
-export function makeTerrain() {
+export function makeTerrain({ hasQuarry = false } = {}) {
   const group = new THREE.Group();
   const earth = material('#a68563');
   const turf = material('#a8b782');
@@ -22,7 +22,7 @@ export function makeTerrain() {
   ground.receiveShadow = true;
   group.add(soil, ground);
   const random = createRandom(42);
-  let quarry;
+  let quarry = null;
   for (let i = 0; i < 36; i++) {
     const angle = random() * Math.PI * 2;
     const radius = 1.85 + random() * 0.32;
@@ -37,6 +37,7 @@ export function makeTerrain() {
       rock.rotation.set(random(), random() * 6, random());
       rock.castShadow = true;
       if (i === 0) {
+        if (!hasQuarry) continue;
         rock.material = material('#85898d', { emissive: '#bac4cf', emissiveIntensity: 0 });
         rock.scale.set(3.2, 2.6, 2.8);
         rock.position.set(1.55, groundY + 0.23, 1.15);

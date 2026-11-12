@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { announce, setUiState, translate } from './i18n.js';
 import { createResources } from './resources.js';
-import { plantCosts, plantingSlots, growthDuration, neighborOffsets } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, treeKind } from './garden-layout.js';
 import { makePlant } from './plants.js';
 import { makeTree } from './trees.js';
 import { makeTerrain, groundY } from './terrain.js';
@@ -11,10 +11,15 @@ const $ = (selector) => document.querySelector(selector);
 let storage;
 try { storage = window.localStorage; } catch { /* Keep playing without persistent storage. */ }
 const resources = createResources(storage);
+$('#new-game').addEventListener('click', () => {
+  if (!window.confirm(translate('confirmNewGame'))) return;
+  resources.newGame();
+  window.location.reload();
+});
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#f6f4ed');
-scene.fog = new THREE.Fog('#f6f4ed', 40, 75);
-const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 90);
+scene.fog = new THREE.Fog('#f6f4ed', 300, 550);
+const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 600);
 camera.position.set(8, 6.2, 10);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -28,7 +33,7 @@ controls.target.set(0, 1.8, 0);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.minDistance = 3.5;
-controls.maxDistance = 32;
+controls.maxDistance = 300;
 controls.minPolarAngle = 0.4;
 controls.maxPolarAngle = Math.PI / 2.15;
 scene.add(new THREE.HemisphereLight('#fffbeb', '#a3ad8d', 2.5));
@@ -40,7 +45,7 @@ Object.assign(sunlight.shadow.camera, { left: -12, right: 12, top: 12, bottom: -
 sunlight.shadow.normalBias = 0.035;
 sunlight.shadow.bias = -0.0002;
 scene.add(sunlight);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#f6f4ed', roughness: 0.95 }));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshStandardMaterial({ color: '#f6f4ed', roughness: 0.95 }));
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.46;
 floor.receiveShadow = true;
@@ -51,7 +56,9 @@ const isTree = (type) => type === 'apple' || type === 'pine';
 const views = [];
 let activeParcel = 0;
 let selectedType = null;
+let shearsActive = false;
 let expansionVisible = false;
+let overviewActive = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -groundY);
@@ -63,7 +70,7 @@ function buildTree(view, record) {
     view.tree.dispose();
   }
   view.treeRecord = record;
-  view.tree = record ? makeTree(view.id === 0 ? 'apple' : 'pine', record.seed) : null;
+  view.tree = record ? makeTree(treeKind(view.id), record.seed) : null;
   view.finished = false;
   view.restoredMature = Boolean(record && Date.now() - record.startedAt >= growthDuration);
   if (view.tree) {
@@ -77,6 +84,7 @@ function refreshPlants(view) {
   resources.parcel(view.id).plants.forEach((plant) => {
     const slot = plantingSlots[plant.slot];
     const group = makePlant(plant.type, plant.seed, view.biome);
+    group.userData.plantSlot = plant.slot;
     group.position.set(slot.x, groundY, slot.z);
     view.plants.add(group);
   });
@@ -84,11 +92,11 @@ function refreshPlants(view) {
 
 function createParcel(id) {
   const record = resources.parcel(id);
-  const offset = id === 0 ? { x: 0, z: 0 } : neighborOffsets[record.direction];
+  const offset = parcelPosition(record);
   const root = new THREE.Group();
   root.position.set(offset.x, 0, offset.z);
   root.userData.parcelId = id;
-  const terrain = makeTerrain();
+  const terrain = makeTerrain({ hasQuarry: id === 0 });
   const plants = new THREE.Group();
   root.add(terrain.group, plants);
   scene.add(root);
@@ -97,10 +105,16 @@ function createParcel(id) {
   views.push(view);
   refreshPlants(view);
   buildTree(view, record.tree);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.parcel = id;
+  button.dataset.treeKind = treeKind(id);
+  button.textContent = `${translate('parcel')} ${id + 1} · ${translate(treeKind(id))}`;
+  button.addEventListener('click', () => selectParcel(id));
+  $('#parcel-list').appendChild(button);
   return view;
 }
-createParcel(0);
-if (resources.second) createParcel(1);
+resources.parcels.forEach((_, id) => createParcel(id));
 
 const slotMarkers = new THREE.Group();
 const slotGeometry = new THREE.RingGeometry(0.12, 0.17, 20);
@@ -115,7 +129,7 @@ const slotButtons = plantingSlots.map((slot, index) => {
   button.type = 'button';
   button.dataset.slot = index;
   button.textContent = `${translate('slot')} ${index + 1}`;
-  button.addEventListener('click', () => plantItem(index));
+  button.addEventListener('click', () => shearsActive ? removePlant(index) : plantItem(index));
   $('#slot-choices').appendChild(button);
   return button;
 });
@@ -129,25 +143,33 @@ const previewGeometry = new THREE.CylinderGeometry(2.67, 2.67, 0.035, 6);
 const previewMaterial = new THREE.MeshBasicMaterial({ color: '#8da582', transparent: true, opacity: 0.18, depthWrite: false });
 const plusMaterial = new THREE.MeshBasicMaterial({ color: '#84937d', transparent: true, opacity: 0.8, depthWrite: false });
 const plusGeometry = new THREE.BoxGeometry(0.6, 0.025, 0.1);
-neighborOffsets.forEach((offset, direction) => {
-  const group = new THREE.Group();
-  group.position.set(offset.x, groundY, offset.z);
-  group.userData.direction = direction;
-  group.add(new THREE.Mesh(previewGeometry, previewMaterial));
-  for (let i = 0; i < 2; i++) {
-    const plus = new THREE.Mesh(plusGeometry, plusMaterial);
-    plus.position.y = 0.035;
-    plus.rotation.y = i * Math.PI / 2;
-    group.add(plus);
-  }
-  expansionPreviews.add(group);
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.dataset.neighbor = direction;
-  button.textContent = `${translate('neighbor')} ${direction + 1}`;
-  button.addEventListener('click', () => expandGarden(direction));
-  $('#expansion-choices').appendChild(button);
-});
+let expansionPositions = [];
+function refreshExpansionPreviews() {
+  expansionPreviews.clear();
+  $('#expansion-choices').replaceChildren();
+  expansionPositions = resources.expansionTargets();
+  expansionPositions.forEach((position, index) => {
+    const offset = parcelPosition(position);
+    const group = new THREE.Group();
+    group.position.set(offset.x, groundY, offset.z);
+    group.userData.targetIndex = index;
+    group.add(new THREE.Mesh(previewGeometry, previewMaterial));
+    for (let i = 0; i < 2; i++) {
+      const plus = new THREE.Mesh(plusGeometry, plusMaterial);
+      plus.position.y = 0.035;
+      plus.rotation.y = i * Math.PI / 2;
+      group.add(plus);
+    }
+    expansionPreviews.add(group);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.neighbor = index;
+    button.textContent = `${translate('neighbor')} ${index + 1}`;
+    button.addEventListener('click', () => expandGarden(index));
+    $('#expansion-choices').appendChild(button);
+  });
+}
+refreshExpansionPreviews();
 
 function resize() {
   const { width, height } = $('#scene').getBoundingClientRect();
@@ -159,16 +181,36 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
+window.addEventListener('resize', () => { if (overviewActive) focusGarden(true); });
 
 function focusGarden(overview = false) {
-  const center = overview && views.length > 1 ? views[1].root.position.clone().multiplyScalar(0.5) : views[activeParcel].root.position.clone();
-  center.y = overview ? 0.9 : 1.5;
-  if (overview && expansionVisible) center.set(0, 0.5, 0);
-  const distance = overview ? (expansionVisible ? 25 : 19) : 13;
+  overviewActive = overview;
+  const bounds = new THREE.Box3();
+  views.forEach((view) => {
+    bounds.expandByPoint(view.root.position.clone().add(new THREE.Vector3(-3, 0, -3)));
+    bounds.expandByPoint(view.root.position.clone().add(new THREE.Vector3(3, 5, 3)));
+  });
+  if (overview && expansionVisible) expansionPreviews.children.forEach((preview) => {
+    bounds.expandByPoint(preview.position.clone().add(new THREE.Vector3(-3, 0, -3)));
+    bounds.expandByPoint(preview.position.clone().add(new THREE.Vector3(3, 0, 3)));
+  });
+  const center = overview ? bounds.getCenter(new THREE.Vector3()) : views[activeParcel].root.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
+  const radius = bounds.getBoundingSphere(new THREE.Sphere()).radius;
+  const distance = overview ? Math.max(13, radius / Math.sin(Math.min(verticalFov, horizontalFov) / 2) * 1.2) : 13;
   controls.target.copy(center);
   camera.position.copy(center).add(new THREE.Vector3(8, 6.2, 10).normalize().multiplyScalar(distance));
+  const lightCenter = bounds.getCenter(new THREE.Vector3());
+  sunlight.target.position.copy(lightCenter);
+  sunlight.position.copy(lightCenter).add(new THREE.Vector3(-8, 30, 12));
+  scene.add(sunlight.target);
+  const shadowSize = Math.max(12, radius);
+  Object.assign(sunlight.shadow.camera, { left: -shadowSize, right: shadowSize, top: shadowSize, bottom: -shadowSize, far: shadowSize * 2 + 70 });
+  sunlight.shadow.camera.updateProjectionMatrix();
   controls.update();
 }
+$('#garden-overview').addEventListener('click', () => focusGarden(true));
 
 function updateUI() {
   const view = views[activeParcel];
@@ -187,7 +229,7 @@ function updateUI() {
   document.querySelectorAll('[data-tree-type]').forEach((button) => {
     const type = button.dataset.treeType;
     button.hidden = type === 'pine' && views.length < 2;
-    button.disabled = Boolean(record.tree) || (type === 'apple' ? activeParcel !== 0 : activeParcel !== 1);
+    button.disabled = Boolean(record.tree) || type !== treeKind(activeParcel);
     button.setAttribute('aria-pressed', String(type === selectedType));
   });
   views.forEach((parcel) => {
@@ -200,43 +242,56 @@ function updateUI() {
     parcel.terrain.outline.visible = views.length > 1 && parcel.id === activeParcel;
   });
   slotMarkers.position.copy(view.root.position);
-  slotMarkers.visible = Boolean(selectedType && !isTree(selectedType));
-  slotMarkers.children.forEach((mesh, index) => { mesh.visible = !occupied.has(index); });
-  slotButtons.forEach((button, index) => { button.disabled = !selectedType || isTree(selectedType) || occupied.has(index); });
-  $('#slot-choices').hidden = !selectedType || isTree(selectedType);
+  slotMarkers.visible = shearsActive || Boolean(selectedType && !isTree(selectedType));
+  slotMarkers.children.forEach((mesh, index) => { mesh.visible = shearsActive ? occupied.has(index) : !occupied.has(index); });
+  slotButtons.forEach((button, index) => {
+    button.disabled = shearsActive ? !occupied.has(index) : !selectedType || isTree(selectedType) || occupied.has(index);
+    button.dataset.removing = String(shearsActive);
+    button.textContent = `${translate(shearsActive ? 'removeSlot' : 'slot')} ${index + 1}`;
+  });
+  $('#slot-choices').hidden = !shearsActive && (!selectedType || isTree(selectedType));
   treeMarker.visible = isTree(selectedType);
   treeMarker.position.copy(view.root.position).add(new THREE.Vector3(0, groundY + 0.02, 0));
   $('#plant').hidden = !isTree(selectedType);
-  $('#cancel-planting').hidden = !selectedType;
-  $('#planting-controls').hidden = !selectedType || !$('#shop-panel').hidden;
+  $('#cancel-planting').hidden = !selectedType && !shearsActive;
+  $('#planting-controls').hidden = (!selectedType && !shearsActive) || !$('#shop-panel').hidden;
+  $('#shears-toggle').setAttribute('aria-pressed', String(shearsActive));
   $('#shop-toggle').classList.toggle('planting', Boolean(selectedType));
   $('#parcel-tabs').hidden = views.length < 2;
+  $('#parcel-count').textContent = `${views.length} / ${parcelLimit}`;
   document.querySelector('main').classList.toggle('expanded', views.length > 1);
   document.querySelectorAll('[data-parcel]').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.parcel) === activeParcel)));
+  $(`[data-parcel="${activeParcel}"]`).scrollIntoView({ block: 'nearest', inline: 'nearest' });
   const mature = Boolean(record.tree && Date.now() - record.tree.startedAt >= growthDuration);
   $('.growth-panel').hidden = !record.tree || mature;
-  $('#reset').hidden = !record.tree;
   setUiState({ instruction: record.tree ? mature ? 'grown' : 'growing' : 'shopIdle',
     plantingStatus: isTree(selectedType) ? 'treeHint' : full ? 'gardenFull' : selectedType ? 'chooseSpot' : 'choosePlant',
-    placement: isTree(selectedType) ? 'treeHint' : 'placePlant' });
+    placement: shearsActive ? 'shearsHint' : isTree(selectedType) ? 'treeHint' : 'placePlant' });
   const progress = resources.expansionProgress();
-  for (const [key, goal] of Object.entries({ stone: 500, bush: 3, mushroom: 6, flower: 8 })) {
+  for (const [key, goal] of Object.entries({ stone: expansionCost, bush: 3, mushroom: 6, flower: 8 })) {
     $(`#goal-${key}`).textContent = `${Math.min(progress[key], goal)} / ${goal}`;
   }
   $('#goal-tree').textContent = progress.tree ? '✓' : '—';
-  $('#expansion-progress').hidden = views.length > 1;
+  $('#expansion-progress').hidden = views.length >= parcelLimit;
+  $('#parcel-limit').hidden = views.length < parcelLimit;
+  $('#expansion-source').textContent = `${translate('parcel')} ${progress.parcelId + 1}`;
+  $('#expansion-source').dataset.sourceParcel = progress.parcelId;
   const ready = resources.canExpand();
   const newlyReady = ready && !expansionVisible;
   const changed = ready !== expansionVisible;
   expansionVisible = ready;
   expansionPreviews.visible = ready;
-  $('#expansion-hint').hidden = !ready || Boolean(selectedType);
+  $('#expansion-hint').hidden = !ready || Boolean(selectedType) || shearsActive;
   $('#expansion-choices').hidden = !ready;
   if (changed) resize();
   if (newlyReady) { focusGarden(true); announce('expansionReady'); }
 }
 
 function setShopOpen(open) {
+  if (open && shearsActive) {
+    shearsActive = false;
+    updateUI();
+  }
   const panel = $('#shop-panel');
   const toggle = $('#shop-toggle');
   const restoreFocus = !open && panel.contains(document.activeElement);
@@ -244,15 +299,23 @@ function setShopOpen(open) {
   toggle.setAttribute('aria-expanded', String(open));
   toggle.dataset.i18nAria = open ? 'closeShop' : 'openShop';
   toggle.setAttribute('aria-label', translate(toggle.dataset.i18nAria));
-  $('#planting-controls').hidden = open || !selectedType;
+  $('#planting-controls').hidden = open || (!selectedType && !shearsActive);
   if (restoreFocus) toggle.focus({ preventScroll: true });
 }
 $('#shop-toggle').addEventListener('click', () => setShopOpen($('#shop-panel').hidden));
 $('#close-shop').addEventListener('click', () => setShopOpen(false));
+$('#shears-toggle').addEventListener('click', () => {
+  shearsActive = !shearsActive;
+  selectedType = null;
+  setShopOpen(false);
+  updateUI();
+  if (shearsActive) announce('shearsHint');
+});
 
 function selectType(type) {
+  shearsActive = false;
   const record = resources.parcel(activeParcel);
-  if (isTree(type) && (record.tree || (type === 'apple' ? activeParcel !== 0 : activeParcel !== 1))) return;
+  if (isTree(type) && (record.tree || type !== treeKind(activeParcel))) return;
   selectedType = selectedType === type ? null : type;
   if (selectedType) {
     const target = views[activeParcel].root.position.clone().add(new THREE.Vector3(0, 0.5, 0));
@@ -267,19 +330,19 @@ document.querySelectorAll('[data-plant-type], [data-tree-type]').forEach((button
   button.addEventListener('click', () => selectType(button.dataset.plantType || button.dataset.treeType));
 });
 $('#cancel-planting').addEventListener('click', () => {
+  shearsActive = false;
   selectedType = null;
   updateUI();
   $('#shop-toggle').focus({ preventScroll: true });
 });
 
 function selectParcel(id) {
-  if (!views[id] || id === activeParcel) return;
+  if (!views[id]) return;
   selectedType = null;
   activeParcel = id;
   updateUI();
   focusGarden();
 }
-document.querySelectorAll('[data-parcel]').forEach((button) => button.addEventListener('click', () => selectParcel(Number(button.dataset.parcel))));
 
 function plantItem(slot) {
   if (!selectedType || isTree(selectedType)) return;
@@ -287,6 +350,13 @@ function plantItem(slot) {
   refreshPlants(views[activeParcel]);
   updateUI();
   announce('itemPlanted');
+}
+
+function removePlant(slot, parcelId = activeParcel) {
+  if (!shearsActive || !resources.removePlant(slot, parcelId)) return;
+  refreshPlants(views[parcelId]);
+  updateUI();
+  announce('plantRemoved');
 }
 
 function plantTree(point = new THREE.Vector3()) {
@@ -299,24 +369,18 @@ function plantTree(point = new THREE.Vector3()) {
   announce('planted');
 }
 $('#plant').addEventListener('click', () => plantTree());
-$('#reset').addEventListener('click', () => {
-  resources.setTree(null, activeParcel);
-  buildTree(views[activeParcel], null);
-  selectedType = null;
-  updateUI();
-  setShopOpen(true);
-  $(`[data-tree-type="${activeParcel === 0 ? 'apple' : 'pine'}"]`).focus({ preventScroll: true });
-});
 
-function expandGarden(direction) {
-  if (!resources.expand(direction)) { updateUI(); return; }
+function expandGarden(index) {
+  if (!resources.expand(expansionPositions[index])) { updateUI(); return; }
   selectedType = null;
-  createParcel(1);
-  activeParcel = 1;
+  shearsActive = false;
+  activeParcel = views.length;
+  createParcel(activeParcel);
+  refreshExpansionPreviews();
   setShopOpen(false);
   updateUI();
   resize();
-  focusGarden(true);
+  focusGarden();
   announce('expanded');
 }
 
@@ -334,12 +398,17 @@ function pointerHit(event) {
   });
   if (expansionVisible) {
     const preview = raycaster.intersectObjects(expansionPreviews.children, true)[0];
-    if (preview && (!hit || preview.distance < hit.distance)) return { kind: 'expand', id: preview.object.parent.userData.direction };
+    if (preview && (!hit || preview.distance < hit.distance)) return { kind: 'expand', id: preview.object.parent.userData.targetIndex };
   }
   if (!hit) return null;
   for (const view of views) if (hit.object === view.terrain.quarry) return { kind: 'quarry', id: view.id };
   let parent = hit.object;
+  let plantSlot;
+  for (let object = hit.object; object; object = object.parent) {
+    if (object.userData.plantSlot !== undefined) plantSlot = object.userData.plantSlot;
+  }
   while (parent && parent.userData.parcelId === undefined) parent = parent.parent;
+  if (shearsActive && parent && plantSlot !== undefined) return { kind: 'plant', id: parent.userData.parcelId, slot: plantSlot };
   return parent ? { kind: 'parcel', id: parent.userData.parcelId } : null;
 }
 function slotAtPointer(event) {
@@ -359,9 +428,9 @@ function slotAtPointer(event) {
   });
   return closest;
 }
-function mineStone(id = activeParcel) {
+function mineStone() {
   resources.mineStone();
-  views[id].minedAt = performance.now();
+  views[0].minedAt = performance.now();
   updateUI();
 }
 $('#mine-stone').addEventListener('click', () => mineStone());
@@ -377,7 +446,7 @@ renderer.domElement.addEventListener('pointermove', (event) => {
   const gesture = gestures.get(event.pointerId);
   if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) gesture.moved = true;
   const hit = pointerHit(event);
-  renderer.domElement.style.cursor = hit?.kind === 'quarry' || hit?.kind === 'expand' || slotAtPointer(event) !== null || isTree(selectedType) ? 'pointer' : '';
+  renderer.domElement.style.cursor = shearsActive ? hit?.kind === 'plant' ? 'crosshair' : '' : hit?.kind === 'quarry' || hit?.kind === 'expand' || slotAtPointer(event) !== null || isTree(selectedType) ? 'pointer' : '';
 });
 renderer.domElement.addEventListener('pointercancel', (event) => gestures.delete(event.pointerId));
 renderer.domElement.addEventListener('lostpointercapture', (event) => gestures.delete(event.pointerId));
@@ -387,12 +456,18 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   if (!gesture || gesture.moved || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) return;
   if (!$('#shop-panel').hidden) { setShopOpen(false); return; }
   const hit = pointerHit(event);
+  if (shearsActive) {
+    if (hit?.kind === 'plant' && gesture.hit?.kind === 'plant' && gesture.hit.id === hit.id && gesture.hit.slot === hit.slot) {
+      removePlant(hit.slot, hit.id);
+    } else if (hit?.kind === 'parcel') selectParcel(hit.id);
+    return;
+  }
   if (hit?.kind === 'expand') {
     if (gesture.hit?.kind === 'expand' && gesture.hit.id === hit.id) expandGarden(hit.id);
     return;
   }
   if (hit?.kind === 'quarry') {
-    if (gesture.hit?.kind === 'quarry' && gesture.hit.id === hit.id) mineStone(hit.id);
+    if (gesture.hit?.kind === 'quarry' && gesture.hit.id === hit.id) mineStone();
     return;
   }
   if (isTree(selectedType)) {
@@ -410,6 +485,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
 }, { capture: true });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
+    shearsActive = false;
     selectedType = null;
     setShopOpen(false);
     updateUI();
@@ -423,7 +499,9 @@ renderer.setAnimationLoop((now) => {
   controls.update();
   let completed = false;
   for (const view of views) {
-    view.terrain.quarry.material.emissiveIntensity = Math.max(0, 1 - (now - view.minedAt) / 220) * 0.65;
+    if (view.terrain.quarry) {
+      view.terrain.quarry.material.emissiveIntensity = Math.max(0, 1 - (now - view.minedAt) / 220) * 0.65;
+    }
     if (!view.tree) continue;
     const progress = Math.max(0, Math.min((Date.now() - view.treeRecord.startedAt) / growthDuration, 1));
     if (!view.finished) {
@@ -443,6 +521,7 @@ renderer.setAnimationLoop((now) => {
       setUiState({ growth: progress < 0.2 ? 'awakening' : progress < 0.55 ? 'reaching' : progress < 1 ? 'unfolding' : 'complete' });
     }
     if (progress === 1 && !view.finished) {
+      view.tree.finish();
       view.finished = true;
       completed = true;
       if (!view.restoredMature) announce('finished');

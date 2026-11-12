@@ -17,6 +17,9 @@
   </head>
   <body>
     <main>
+      <button id="new-game" type="button" data-i18n-aria="newGame" aria-label="New game">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M30 13a13 13 0 1 0 3 13" fill="none" stroke="#858b90" stroke-width="3.5" stroke-linecap="round"/><path d="M30 5v9H21" fill="none" stroke="#858b90" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <nav class="language-switch" aria-label="Language" data-i18n-aria="language">
         <button type="button" data-language="en" lang="en" aria-label="English" aria-pressed="true">EN</button>
         <span aria-hidden="true">/</span>
@@ -41,9 +44,11 @@
         <span id="growth-label" class="sr-only">Life is waking up</span>
         <progress id="progress" max="1" value="0" data-i18n-aria="progress" aria-label="Tree growth progress"></progress>
       </section>
-      <button id="reset" hidden><span data-i18n="reset">New seed</span> <span aria-hidden="true">↻</span></button>
       <button id="shop-toggle" type="button" aria-controls="shop-panel" aria-expanded="false" data-i18n-aria="openShop" aria-label="Open shop">
         <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M14 13V10a6 6 0 0 1 12 0v3" fill="none" stroke="#747a80" stroke-width="3" stroke-linecap="round"/><path d="m9 12 22 0 4 20-7 4H12l-7-4Z" fill="#969ca1"/><path d="m9 12 6 7-3 17-7-4Z" fill="#858b90"/><path d="m31 12-6 7 3 17 7-4Z" fill="#a9aeb2"/><path d="M14 12v4m12-4v4" stroke="#687078" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+      <button id="shears-toggle" type="button" data-i18n-aria="shears" aria-label="Garden shears" aria-pressed="false">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="m15 23 13-17M25 23 12 6" fill="none" stroke="#858b90" stroke-width="3.5" stroke-linecap="round"/><circle cx="20" cy="17" r="2.5" fill="#687078"/><ellipse cx="12" cy="29" rx="5" ry="7" transform="rotate(25 12 29)" fill="none" stroke="#739065" stroke-width="3.5"/><ellipse cx="28" cy="29" rx="5" ry="7" transform="rotate(-25 28 29)" fill="none" stroke="#739065" stroke-width="3.5"/></svg>
       </button>
       <section id="shop-panel" class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something" hidden>
         <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span><button id="close-shop" type="button" data-i18n-aria="closeShop" aria-label="Close shop">×</button></div>
@@ -60,26 +65,28 @@
         </div>
         <div class="shop-status"><p id="planting-status" role="status"></p></div>
         <details id="expansion-progress" class="expansion-progress">
-          <summary data-i18n="nextParcel">Next hexagon</summary>
+          <summary><span data-i18n="nextParcel">Next hexagon</span> · <output id="parcel-count">1 / 12</output></summary>
+          <p><span data-i18n="expansionSource">Requirements on plot:</span> <span id="expansion-source" data-source-parcel="0">Plot 1</span></p>
           <ul>
-            <li><span data-i18n="stone">Stone</span><output id="goal-stone">0 / 500</output></li>
-            <li><span data-i18n="grownApple">Grown apple tree</span><output id="goal-tree">—</output></li>
+            <li><span data-i18n="stone">Stone</span><output id="goal-stone">0 / 150</output></li>
+            <li><span data-i18n="grownTree">Grown tree</span><output id="goal-tree">—</output></li>
             <li><span data-i18n="bush">Bush</span><output id="goal-bush">0 / 3</output></li>
             <li><span data-i18n="mushroom">Mushroom</span><output id="goal-mushroom">0 / 6</output></li>
             <li><span data-i18n="flower">Flower</span><output id="goal-flower">0 / 8</output></li>
           </ul>
-          <p data-i18n="expansionPrice">Expanding costs 500 stone. Plants stay in place.</p>
+          <p data-i18n="expansionPrice">Expanding costs 150 stone. Plants stay in place.</p>
         </details>
+        <p id="parcel-limit" class="shop-limit" data-i18n="parcelLimitReached" hidden>All 12 plots are unlocked.</p>
       </section>
       <div id="planting-controls" class="planting-controls" hidden>
         <span id="placement-label">Choose a glowing place</span><button class="plant-button" id="plant" data-i18n="plantCenter" hidden>Plant in center</button><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button>
         <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
       </div>
       <nav id="parcel-tabs" class="parcel-tabs" data-i18n-aria="parcels" aria-label="Garden plots" hidden>
-        <button type="button" data-parcel="0" data-i18n="parcelOne" aria-pressed="true">Plot 1</button>
-        <button type="button" data-parcel="1" data-i18n="parcelTwo" aria-pressed="false">Plot 2</button>
+        <button id="garden-overview" type="button" data-i18n="overview">Overview</button>
+        <div id="parcel-list" class="parcel-list"></div>
       </nav>
-      <div id="expansion-hint" class="expansion-hint" role="status" hidden><span data-i18n="expansionReady">Choose a neighboring + to expand for 500 stone.</span><div id="expansion-choices" class="slot-choices" hidden></div></div>
+      <div id="expansion-hint" class="expansion-hint" role="status" hidden><span data-i18n="expansionReady">Choose a neighboring + to expand for 150 stone.</span><div id="expansion-choices" class="slot-choices" hidden></div></div>
       <footer><span data-i18n="unique">Every tree is one of a kind</span><span><span data-i18n="rotate">Drag the scene to rotate</span> <span class="mouse-icon" aria-hidden="true">↔</span></span></footer>
       <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
     </main>
@@ -91,6 +98,7 @@
         document.querySelector('#plant').disabled = true;
         document.querySelector('#mine-stone').disabled = true;
         document.querySelector('#shop-toggle').disabled = true;
+        document.querySelector('#shears-toggle').disabled = true;
         document.querySelectorAll('[data-plant-type], [data-tree-type], [data-slot], [data-neighbor], [data-parcel]').forEach((button) => { button.disabled = true; });
       });
     </script>

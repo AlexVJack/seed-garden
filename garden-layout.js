@@ -1,10 +1,27 @@
 export const plantCosts = Object.freeze({ flower: 1, mushroom: 2, bush: 3 });
 export const growthDuration = 26000;
-export const expansionCost = 500;
-export const neighborOffsets = Object.freeze(Array.from({ length: 6 }, (_, direction) => {
+export const expansionCost = 150;
+export const parcelLimit = 12;
+export const hexDirections = Object.freeze([
+  { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 },
+  { q: -1, r: 0 }, { q: 0, r: -1 }, { q: 1, r: -1 },
+].map(Object.freeze));
+export const hexKey = ({ q, r }) => `${q},${r}`;
+export const treeKind = (id) => id % 2 === 0 ? 'apple' : 'pine';
+export function parcelPosition({ q, r }) {
   const distance = 2 * 2.67 * Math.cos(Math.PI / 6);
-  return Object.freeze({ x: Math.cos(direction * Math.PI / 3) * distance, z: Math.sin(direction * Math.PI / 3) * distance });
-}));
+  return { x: distance * (q + r / 2), z: distance * Math.sqrt(3) / 2 * r };
+}
+export const neighborOffsets = Object.freeze(hexDirections.map((direction) => Object.freeze(parcelPosition(direction))));
+export function expansionTargets(parcels) {
+  const occupied = new Set(parcels.map(hexKey));
+  const targets = new Map();
+  parcels.forEach(({ q, r }) => hexDirections.forEach((direction) => {
+    const target = { q: q + direction.q, r: r + direction.r };
+    if (!occupied.has(hexKey(target))) targets.set(hexKey(target), target);
+  }));
+  return [...targets.values()];
+}
 const quarryAngle = Math.atan2(1.15, 1.55);
 
 // Leave an opening in the outer ring for the quarry and space around the tree.

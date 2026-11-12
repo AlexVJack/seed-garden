@@ -20,16 +20,21 @@ const messages = {
     unfolding: 'The canopy is unfolding',
     complete: 'Your tree has grown',
     progress: 'Tree growth progress',
-    reset: 'New seed',
     unique: 'Every tree is one of a kind',
     rotate: 'Drag the scene to rotate',
     language: 'Language',
+    newGame: 'New game',
+    confirmNewGame: 'Start a new game? Your entire garden, all plots, plants and stone will be lost. This cannot be undone.',
     resources: 'Resources',
     stone: 'Stone',
     mineStone: 'Mine stone (+1)',
     plantShop: 'Plant something',
     openShop: 'Open shop',
     closeShop: 'Close shop',
+    shears: 'Garden shears',
+    shearsHint: 'Tap a flower, bush or mushroom to remove it. No stone is refunded.',
+    plantRemoved: 'Plant removed. Its place is free again.',
+    removeSlot: 'Remove plant at place',
     placePlant: 'Choose a glowing place',
     places: 'Places',
     flower: 'Flower',
@@ -47,7 +52,7 @@ const messages = {
     putBack: 'The seed has been put back.',
     invalidSpot: 'Plant the seed closer to the center of the island.',
     ready: 'A new seed is ready to plant.',
-    finished: 'Your tree has grown. Explore it or plant a new one.',
+    finished: 'Your tree has grown. Take a closer look.',
     shopIdle: 'Open the bag to choose a free tree seed.',
     treeSeeds: 'Tree seeds',
     smallPlants: 'Plants',
@@ -57,14 +62,16 @@ const messages = {
     treeHint: 'Tap the center of this plot to plant your tree.',
     plantCenter: 'Plant in center',
     nextParcel: 'Next hexagon',
-    grownApple: 'Grown apple tree',
-    expansionPrice: 'Expanding costs 500 stone. Plants stay in place.',
-    expansionReady: 'Choose a neighboring + to expand for 500 stone.',
-    expanded: 'New plot unlocked. Free spruce seeds are now in the shop.',
+    parcelLimitReached: 'All 12 plots are unlocked.',
+    grownTree: 'Grown tree',
+    expansionSource: 'Requirements on plot:',
+    expansionPrice: 'Expanding costs 150 stone. Plants stay in place.',
+    expansionReady: 'Choose a neighboring + to expand for 150 stone.',
+    expanded: 'New plot unlocked. Choose its free tree seed in the shop.',
     neighbor: 'Add neighboring plot',
     parcels: 'Garden plots',
-    parcelOne: 'Plot 1 · Apple',
-    parcelTwo: 'Plot 2 · Spruce',
+    parcel: 'Plot',
+    overview: 'Overview',
   },
   uk: {
     title: 'Зернятко — маленький сад',
@@ -87,16 +94,21 @@ const messages = {
     unfolding: 'Розгортається крона',
     complete: 'Твоє дерево виросло',
     progress: 'Прогрес росту дерева',
-    reset: 'Нове зернятко',
     unique: 'Кожне дерево — неповторне',
     rotate: 'Потягни сцену, щоб обертати',
     language: 'Мова',
+    newGame: 'Нова гра',
+    confirmNewGame: 'Почати нову гру? Увесь сад, усі ділянки, рослини та каміння буде втрачено. Цю дію не можна скасувати.',
     resources: 'Ресурси',
     stone: 'Камінь',
     mineStone: 'Добути камінь (+1)',
     plantShop: 'Що посадимо?',
     openShop: 'Відкрити магазин',
     closeShop: 'Закрити магазин',
+    shears: 'Садові ножиці',
+    shearsHint: 'Натисни на квітку, кущ або гриб, щоб видалити. Каміння не повертається.',
+    plantRemoved: 'Рослину видалено. Місце знову вільне.',
+    removeSlot: 'Видалити рослину на місці',
     placePlant: 'Обери підсвічене місце',
     places: 'Місця',
     flower: 'Квіточка',
@@ -114,7 +126,7 @@ const messages = {
     putBack: 'Насінину повернуто.',
     invalidSpot: 'Посади насінину ближче до центру острівця.',
     ready: 'Нова насінина готова до посадки.',
-    finished: 'Твоє дерево виросло. Можеш розглянути його або посадити нове.',
+    finished: 'Твоє дерево виросло. Можеш розглянути його ближче.',
     shopIdle: 'Відкрий торбинку та обери безкоштовне насіння дерева.',
     treeSeeds: 'Насіння дерев',
     smallPlants: 'Рослини',
@@ -124,14 +136,16 @@ const messages = {
     treeHint: 'Натисни в центрі цієї ділянки, щоб посадити дерево.',
     plantCenter: 'Посадити в центрі',
     nextParcel: 'Наступний шестикутник',
-    grownApple: 'Виросла яблуня',
-    expansionPrice: 'Розширення коштує 500 stone. Рослини залишаються.',
-    expansionReady: 'Обери сусідній +, щоб розширити сад за 500 stone.',
-    expanded: 'Нову ділянку відкрито. У магазині є безкоштовне насіння ялинки.',
+    parcelLimitReached: 'Усі 12 ділянок відкрито.',
+    grownTree: 'Виросле дерево',
+    expansionSource: 'Умови на ділянці:',
+    expansionPrice: 'Розширення коштує 150 stone. Рослини залишаються.',
+    expansionReady: 'Обери сусідній +, щоб розширити сад за 150 stone.',
+    expanded: 'Нову ділянку відкрито. Обери її безкоштовне насіння дерева в магазині.',
     neighbor: 'Додати сусідню ділянку',
     parcels: 'Ділянки саду',
-    parcelOne: 'Ділянка 1 · Яблуня',
-    parcelTwo: 'Ділянка 2 · Ялинка',
+    parcel: 'Ділянка',
+    overview: 'Огляд саду',
   },
 };
 
@@ -178,11 +192,16 @@ function renderLanguage() {
     button.setAttribute('aria-pressed', String(button.dataset.language === language));
   });
   document.querySelectorAll('[data-slot]').forEach((button) => {
-    button.textContent = `${translate('slot')} ${Number(button.dataset.slot) + 1}`;
+    button.textContent = `${translate(button.dataset.removing === 'true' ? 'removeSlot' : 'slot')} ${Number(button.dataset.slot) + 1}`;
   });
   document.querySelectorAll('[data-neighbor]').forEach((button) => {
     button.textContent = `${translate('neighbor')} ${Number(button.dataset.neighbor) + 1}`;
   });
+  document.querySelectorAll('[data-parcel]').forEach((button) => {
+    button.textContent = `${translate('parcel')} ${Number(button.dataset.parcel) + 1} · ${translate(button.dataset.treeKind)}`;
+  });
+  const source = document.querySelector('#expansion-source');
+  source.textContent = `${translate('parcel')} ${Number(source.dataset.sourceParcel) + 1}`;
   renderState();
 }
 

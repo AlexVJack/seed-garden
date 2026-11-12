@@ -23,26 +23,28 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - Open the grey bag shop on the left and choose free apple tree seeds.
 - Tap the center of the plot, or use the keyboard-accessible **Plant in center** button.
 - Drag the scene to rotate it; scroll or pinch with two fingers to zoom.
-- **New seed** clears the current tree so you can grow another.
 - **Escape** closes the shop and cancels plant or tree selection.
+- **New game** (the restart icon at the top right) clears the entire garden and stone after confirmation, keeping your selected language.
+- Toggle **Garden shears** below the shop, then tap a flower, bush or mushroom to remove it without a refund. Trees are unaffected. Press the button again, **Cancel**, or **Escape** to stop. Keyboard users can choose an occupied place from the tool's controls.
 
 ## Plants and saved gardens
 
 - Click the large grey rock to mine **stone**, up to a maximum balance of **10,000**.
 - Open the shop with the grey bag button on the left. A flower costs **1 stone**, a mushroom **2**, and a bush **3**. Selecting a plant hides the shop and highlights free places. Tap a place to plant, or **Cancel** to leave planting mode.
-- There are **24 places** around the central tree. Each plant occupies one; removal and moving are not available yet.
+- There are **24 places** around the central tree. Each plant occupies one; garden shears free its place for planting again. Moving plants is not available yet.
 - Scroll or pinch to zoom closer for easier placement. **Escape** also cancels plant selection.
 - The tree's seed, position and planting time, other plants, and stone are saved locally in your browser. Tree growth accounts for time spent away from the page.
-- **New seed** replaces only the tree, preserving purchased plants and stone. Clearing site data removes the saved garden. If browser storage is unavailable, the garden only lasts until reload.
+- Planted trees cannot be removed or replaced. Clearing site data removes the saved garden. If browser storage is unavailable, the garden only lasts until reload.
 
-## Second plot and conifer biome
+## Expanding the garden: up to 12 plots
 
-- Expansion requires **500 stone, a grown apple tree, 3 bushes, 6 mushrooms, and 8 flowers** on the first plot, all at once. The shop's “Next hexagon” section shows progress.
-- Once ready, **6 translucent neighboring hexagons with plus signs** appear. Pick one to add a plot and spend **500 stone**, preserving existing plants. There are at most two plots for now.
-- The new plot starts as a standard biome with its own rock and **24 places**. Both plots share the stone balance.
-- Expansion unlocks free **spruce seeds** in the shop, usable only on the new plot. Apple trees remain exclusive to the first plot.
+- Each expansion requires **150 stone, a grown tree, 3 bushes, 6 mushrooms, and 8 flowers** on the **most recently unlocked plot**, all at once. The shop's “Next hexagon” section identifies that plot and shows progress. Existing plants are not consumed.
+- Once ready, translucent hexagons with plus signs mark every free neighboring position around the garden. Pick one to add a plot and spend **150 stone**. Occupied positions are excluded and shared neighbors appear only once. The limit is **12 plots**, including the first.
+- Every new plot starts as a standard biome with **24 places**, but no mining rock. The only mining rock stays on the first plot; all plots share the stone balance.
+- Tree seeds are free. Odd-numbered plots (1, 3, 5…) grow **apple trees**; even-numbered plots (2, 4, 6…) grow **spruce**. The shop enables the tree seed appropriate for the selected plot.
 - Selecting spruce previews the conifer biome: darker soil, white flowers, brown mushrooms, and young conifers as bushes. Planting the tree saves that biome. Spruce grows over 26 seconds with randomized tiers of branches and needles; its shape and growth survive reloads.
-- Switch plots using the bottom buttons or by tapping a plot. Replacing a tree affects only the selected plot, never the other one.
+- Switch plots using the horizontally scrollable bottom buttons or by tapping a plot. **Overview** fits the entire garden in view; selecting a plot brings the camera closer. Each plot has its own permanent tree.
+- Old one-plot and two-plot saves are loaded automatically, preserving plants, tree seeds, growth times, stone and the second plot's position.
 
 ## Checks
 
