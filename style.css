@@ -73,6 +73,7 @@ progress::-moz-progress-bar { background: #8aa675; }
 .shop-status { display: flex; align-items: center; gap: 6px; min-height: 32px; margin-top: 6px; }
 .shop-status p { flex: 1; margin: 0; color: #879084; font-size: 10px; line-height: 1.5; }
 #cancel-planting { border: 0; background: #e7eddf; border-radius: 8px; min-height: 32px; padding: 6px; font-size: 10px; }
+.shears-compact-hint, .cancel-icon { display: none; }
 .planting-controls { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: max-content; max-width: calc(100% - 28px); padding: 6px 9px; border: 1px solid #e7e5da; border-radius: 12px; background: #fffdf5ed; font-size: 10px; }
 .slot-choices { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .slot-choices:focus-within { position: static; width: auto; height: auto; max-height: 120px; overflow: auto; clip-path: none; display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
@@ -97,6 +98,13 @@ footer { position: absolute; bottom: 32px; left: 8%; right: 8%; display: flex; j
   .plant-options small { width: 100%; }
   .shop-heading { margin-bottom: 6px; }
   .plant-button { padding: 12px 10px; font-size: 10px; }
+  .planting-controls.shears-mode { bottom: 112px; flex-wrap: nowrap; gap: 8px; padding: 4px 6px 4px 12px; }
+  .shears-mode .shears-compact-hint { display: inline; }
+  .shears-mode #placement-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .shears-mode .cancel-text { display: none; }
+  .shears-mode .cancel-icon { display: inline; }
+  .shears-mode #cancel-planting { flex-shrink: 0; width: 44px; height: 44px; padding: 0; font-size: 24px; }
+  .shears-mode .slot-choices:focus-within { position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 6px; border-radius: 12px; background: #fffdf5; }
   footer { left: 7%; right: 7%; bottom: 24px; font-size: 9px; }
   footer span:first-child { max-width: 105px; }
   footer span:last-child { max-width: 150px; text-align: right; }

@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
     <title>Seed — a little garden</title>
-    <link rel="stylesheet" href="./style.css?v=savanna-2" />
+    <link rel="stylesheet" href="./style.css?v=shears-1" />
     <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
           "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-          "./main.js": "./main.js?v=quarry-1",
-          "./i18n.js": "./i18n.js?v=quarry-1",
+          "./main.js": "./main.js?v=shears-1",
+          "./i18n.js": "./i18n.js?v=shears-1",
           "./garden-layout.js": "./garden-layout.js?v=quarry-1",
           "./resources.js": "./resources.js?v=quarry-1",
           "./trees.js": "./trees.js?v=quarry-1",
@@ -90,7 +90,7 @@
         <p id="parcel-limit" class="shop-limit" data-i18n="parcelLimitReached" hidden>All 12 plots are unlocked.</p>
       </section>
       <div id="planting-controls" class="planting-controls" hidden>
-        <span id="placement-label">Choose a glowing place</span><button class="plant-button" id="plant" data-i18n="plantCenter" hidden>Plant in center</button><button id="cancel-planting" data-i18n="cancel" hidden>Cancel</button>
+        <span id="placement-label">Choose a glowing place</span><span class="shears-compact-hint" data-i18n="shearsHintShort" aria-hidden="true">Tap a plant to remove it</span><button class="plant-button" id="plant" data-i18n="plantCenter" hidden>Plant in center</button><button id="cancel-planting" data-i18n-aria="cancel" aria-label="Cancel" hidden><span class="cancel-text" data-i18n="cancel">Cancel</span><span class="cancel-icon" aria-hidden="true">×</span></button>
         <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
       </div>
       <nav id="parcel-tabs" class="parcel-tabs" data-i18n-aria="parcels" aria-label="Garden plots" hidden>

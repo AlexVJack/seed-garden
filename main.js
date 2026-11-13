@@ -255,6 +255,7 @@ function updateUI() {
   $('#cancel-planting').hidden = !selectedType && !shearsActive;
   $('#planting-controls').hidden = (!selectedType && !shearsActive) || !$('#shop-panel').hidden;
   $('#shears-toggle').setAttribute('aria-pressed', String(shearsActive));
+  $('#planting-controls').classList.toggle('shears-mode', shearsActive);
   $('#shop-toggle').classList.toggle('planting', Boolean(selectedType));
   $('#parcel-tabs').hidden = views.length < 2;
   $('#parcel-count').textContent = `${views.length} / ${parcelLimit}`;
