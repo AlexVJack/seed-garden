@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createRandom } from './plants.js';
 import { plantingSlots, terrainSeed } from './garden-layout.js';
+import { quarryLayout, quarryRadius } from './terrain-layout.js';
 
 export const groundY = 0.26;
 const material = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.95, ...extra });
@@ -10,7 +11,7 @@ const grassGeometry = new THREE.ConeGeometry(0.025, 1, 3);
 const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
 const rockMaterial = material('#b1b4b2');
 
-export function makeTerrain({ hasQuarry = false, q = 0, r = 0 } = {}) {
+export function makeTerrain({ q = 0, r = 0 } = {}) {
   const group = new THREE.Group();
   const earth = material('#a68563');
   const turf = material('#a8b782');
@@ -25,20 +26,24 @@ export function makeTerrain({ hasQuarry = false, q = 0, r = 0 } = {}) {
   const random = createRandom(terrainSeed({ q, r }));
   const hueShift = (random() - 0.5) * 0.015;
   const lightnessShift = (random() - 0.5) * 0.05;
-  let quarry = null;
-  if (hasQuarry) {
-    // Keep the original mining rock's size and position, independent of decoration.
-    const quarryRandom = createRandom(42);
-    quarryRandom();
-    quarryRandom();
-    const size = 0.09 + quarryRandom() * 0.08;
-    quarry = new THREE.Mesh(rockGeometry, material('#85898d', { emissive: '#bac4cf', emissiveIntensity: 0 }));
-    quarry.scale.set(3.2 * size, 2.6 * size, 2.8 * size);
-    quarry.position.set(1.55, groundY + 0.23, 1.15);
-    quarry.rotation.set(quarryRandom(), quarryRandom() * 6, quarryRandom());
-    quarry.castShadow = true;
-    group.add(quarry);
+  const layout = quarryLayout({ q, r });
+  const quarryRandom = createRandom(layout.shapeSeed);
+  const quarryGeometry = rockGeometry.clone();
+  const vertices = quarryGeometry.attributes.position;
+  const shapes = new Map();
+  for (let i = 0; i < vertices.count; i++) {
+    const key = `${vertices.getX(i)},${vertices.getY(i)},${vertices.getZ(i)}`;
+    if (!shapes.has(key)) shapes.set(key, 0.76 + quarryRandom() * 0.24);
+    const scale = shapes.get(key);
+    vertices.setXYZ(i, vertices.getX(i) * scale, vertices.getY(i) * scale, vertices.getZ(i) * scale);
   }
+  quarryGeometry.computeVertexNormals();
+  const quarry = new THREE.Mesh(quarryGeometry, material('#85898d', { emissive: '#bac4cf', emissiveIntensity: 0 }));
+  quarry.scale.set(layout.width, layout.height, layout.depth);
+  quarry.position.set(layout.x, groundY + layout.height * 0.6, layout.z);
+  quarry.rotation.y = layout.rotation;
+  quarry.castShadow = true;
+  group.add(quarry);
   const rockCount = 4 + Math.floor(random() * 3);
   const tuftCount = 7 + Math.floor(random() * 4);
   const rocks = new THREE.InstancedMesh(rockGeometry, rockMaterial, rockCount);
@@ -52,7 +57,7 @@ export function makeTerrain({ hasQuarry = false, q = 0, r = 0 } = {}) {
     const z = (random() - 0.5) * 4.2;
     if (Math.hypot(x, z) < 0.95
       || plantingSlots.some((slot) => Math.hypot(slot.x - x, slot.z - z) < 0.35)
-      || (hasQuarry && Math.hypot(x - 1.55, z - 1.15) < 0.7)
+      || Math.hypot(x - layout.x, z - layout.z) < quarryRadius + 0.22
       || occupied.some((point) => Math.hypot(point.x - x, point.z - z) < 0.3)) continue;
     const apothem = 2.67 * Math.cos(Math.PI / 6);
     if (Array.from({ length: 6 }, (_, side) => side * Math.PI / 3)

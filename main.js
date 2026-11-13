@@ -96,7 +96,7 @@ function createParcel(id) {
   const root = new THREE.Group();
   root.position.set(offset.x, 0, offset.z);
   root.userData.parcelId = id;
-  const terrain = makeTerrain({ hasQuarry: id === 0, q: record.q, r: record.r });
+  const terrain = makeTerrain({ q: record.q, r: record.r });
   const plants = new THREE.Group();
   root.add(terrain.group, plants);
   scene.add(root);
@@ -427,9 +427,9 @@ function slotAtPointer(event) {
   });
   return closest;
 }
-function mineStone() {
+function mineStone(parcelId = activeParcel) {
   resources.mineStone();
-  views[0].minedAt = performance.now();
+  views[parcelId].minedAt = performance.now();
   updateUI();
 }
 $('#mine-stone').addEventListener('click', () => mineStone());
@@ -466,7 +466,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     return;
   }
   if (hit?.kind === 'quarry') {
-    if (gesture.hit?.kind === 'quarry' && gesture.hit.id === hit.id) mineStone();
+    if (gesture.hit?.kind === 'quarry' && gesture.hit.id === hit.id) mineStone(hit.id);
     return;
   }
   if (isTree(selectedType)) {

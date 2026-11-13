@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createResources, stoneLimit } from '../resources.js';
 import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes, terrainSeed } from '../garden-layout.js';
+import { quarryLayout, quarryRadius } from '../terrain-layout.js';
 
 function storage(initial = null) {
   let value = initial;
@@ -22,6 +23,33 @@ test('terrain seeds are stable unsigned integers and distinguish neighboring plo
     assert.equal(seed, terrainSeed(JSON.parse(JSON.stringify(position))));
     assert.ok(Number.isInteger(seed) && seed >= 0 && seed <= 0xffffffff);
   }
+});
+
+test('every possible plot gets a stable quarry clear of planting slots, the tree and hexagon edges', () => {
+  const positions = new Set();
+  const shapes = new Set();
+  const sectors = new Set();
+  for (let q = -parcelLimit + 1; q < parcelLimit; q++) {
+    for (let r = -parcelLimit + 1; r < parcelLimit; r++) {
+      if (Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) >= parcelLimit) continue;
+      const layout = quarryLayout({ q, r });
+      assert.deepEqual(layout, quarryLayout({ q, r }));
+      assert.ok(Math.hypot(layout.x, layout.z) >= 1.65);
+      for (const slot of plantingSlots) assert.ok(Math.hypot(layout.x - slot.x, layout.z - slot.z) >= quarryRadius + 0.26);
+      for (let side = 0; side < 6; side++) {
+        const angle = side * Math.PI / 3;
+        assert.ok(layout.x * Math.cos(angle) + layout.z * Math.sin(angle) <= 2.67 * Math.cos(Math.PI / 6) - quarryRadius - 0.02);
+      }
+      assert.ok(layout.width <= quarryRadius && layout.depth <= quarryRadius);
+      assert.ok(layout.height >= 0.4 && layout.height <= 0.55);
+      positions.add(`${layout.x},${layout.z}`);
+      shapes.add(layout.shapeSeed);
+      sectors.add(Math.floor((Math.atan2(layout.z, layout.x) + Math.PI) / (Math.PI / 3)) % 6);
+    }
+  }
+  assert.ok(positions.size > 30);
+  assert.equal(sectors.size, 6);
+  assert.ok(shapes.size > 350);
 });
 
 test('24 distinct places fit the hexagon, clear of the quarry and central tree', () => {
