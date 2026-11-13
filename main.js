@@ -494,6 +494,12 @@ document.addEventListener('keydown', (event) => {
 resize();
 updateUI();
 if (views.length > 1) focusGarden(true);
+// Optional, untracked tools for local testing only.
+if (['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
+  import('./dev-tools.js').then(({ setupDevTools }) => setupDevTools(resources, updateUI)).catch(() => {
+    // The local tools file is intentionally absent from the repository.
+  });
+}
 renderer.setAnimationLoop((now) => {
   controls.update();
   let completed = false;

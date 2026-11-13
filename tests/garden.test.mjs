@@ -340,8 +340,8 @@ test('new-format saves reject duplicates, disconnected and malformed positions a
   assert.equal(oversized.canExpand(), false);
 });
 
-test('plots 3 through 12 accept either tree and preserve the chosen species and biome on reload', () => {
-  for (let id = 2; id < parcelLimit; id++) {
+test('plots 2 through 12 accept either tree and preserve the chosen species and biome on reload', () => {
+  for (let id = 1; id < parcelLimit; id++) {
     for (const type of ['apple', 'pine']) {
       const parcels = Array.from({ length: id + 1 }, (_, q) => ({ q, r: 0, plants: [], tree: null, biome: 'meadow' }));
       const saved = storage(JSON.stringify({ stone: 200, parcels }));
@@ -356,13 +356,14 @@ test('plots 3 through 12 accept either tree and preserve the chosen species and 
   }
 });
 
-test('the first two plots keep their original trees and invalid species cannot be planted', () => {
+test('the first plot requires an apple tree and invalid species cannot be planted', () => {
   const garden = createResources(storage(JSON.stringify({ parcels: [
     { q: 0, r: 0, plants: [], tree: null }, { q: 1, r: 0, plants: [], tree: null }, { q: 2, r: 0, plants: [], tree: null },
   ] })));
   assert.equal(garden.setTree(eligibleSave().tree, 0, 'pine'), false);
-  assert.equal(garden.setTree(eligibleSave().tree, 1, 'apple'), false);
-  for (const type of ['oak', '', null, 42]) assert.equal(garden.setTree(eligibleSave().tree, 2, type), false);
+  for (const id of [0, 1, 2]) {
+    for (const type of ['oak', '', null, 42]) assert.equal(garden.setTree(eligibleSave().tree, id, type), false);
+  }
   assert.equal(garden.setTree(eligibleSave().tree, 0, 'apple'), true);
   assert.equal(garden.setTree(eligibleSave().tree, 1, 'pine'), true);
 });
