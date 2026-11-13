@@ -96,7 +96,7 @@ function createParcel(id) {
   const root = new THREE.Group();
   root.position.set(offset.x, 0, offset.z);
   root.userData.parcelId = id;
-  const terrain = makeTerrain({ hasQuarry: id === 0 });
+  const terrain = makeTerrain({ hasQuarry: id === 0, q: record.q, r: record.r });
   const plants = new THREE.Group();
   root.add(terrain.group, plants);
   scene.add(root);

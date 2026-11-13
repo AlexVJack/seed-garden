@@ -7,6 +7,7 @@ export const hexDirections = Object.freeze([
   { q: -1, r: 0 }, { q: 0, r: -1 }, { q: 1, r: -1 },
 ].map(Object.freeze));
 export const hexKey = ({ q, r }) => `${q},${r}`;
+export const terrainSeed = ({ q, r }) => (Math.imul(q + parcelLimit + (r + parcelLimit) * (parcelLimit * 2 + 1), 0x9e3779b1) ^ 42) >>> 0;
 export const treeKind = (id) => id % 2 === 0 ? 'apple' : 'pine';
 export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna' });
 export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3 });

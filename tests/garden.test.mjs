@@ -1,12 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createResources, stoneLimit } from '../resources.js';
-import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes } from '../garden-layout.js';
+import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes, terrainSeed } from '../garden-layout.js';
 
 function storage(initial = null) {
   let value = initial;
   return { getItem: () => value, setItem: (_, next) => { value = next; } };
 }
+
+test('terrain seeds are stable unsigned integers and distinguish neighboring plots', () => {
+  const positions = [{ q: 0, r: 0 }, ...hexDirections];
+  const seeds = positions.map(terrainSeed);
+  assert.equal(new Set(seeds).size, positions.length);
+  const allSeeds = new Set();
+  for (let q = -parcelLimit + 1; q < parcelLimit; q++) {
+    for (let r = -parcelLimit + 1; r < parcelLimit; r++) allSeeds.add(terrainSeed({ q, r }));
+  }
+  assert.equal(allSeeds.size, (parcelLimit * 2 - 1) ** 2);
+  for (const position of positions) {
+    const seed = terrainSeed(position);
+    assert.equal(seed, terrainSeed(JSON.parse(JSON.stringify(position))));
+    assert.ok(Number.isInteger(seed) && seed >= 0 && seed <= 0xffffffff);
+  }
+});
 
 test('24 distinct places fit the hexagon, clear of the quarry and central tree', () => {
   assert.equal(plantingSlots.length, 24);
