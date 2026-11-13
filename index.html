@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
     <title>Seed — a little garden</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=savanna-2" />
     <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+          "./main.js": "./main.js?v=savanna-1",
+          "./i18n.js": "./i18n.js?v=savanna-1",
+          "./garden-layout.js": "./garden-layout.js?v=savanna-1",
+          "./resources.js": "./resources.js?v=savanna-1",
+          "./trees.js": "./trees.js?v=savanna-1",
+          "./plants.js": "./plants.js?v=savanna-1",
+          "./terrain.js": "./terrain.js?v=savanna-1",
+          "./dev-tools.js": "./dev-tools.js?v=savanna-1"
         }
       }
     </script>
@@ -56,6 +64,7 @@
         <div class="plant-options tree-options">
           <button type="button" data-tree-type="apple" aria-pressed="false" disabled><span aria-hidden="true">🌳</span><span data-i18n="apple">Apple tree</span><small data-i18n="free">Free</small></button>
           <button type="button" data-tree-type="pine" aria-pressed="false" hidden disabled><span aria-hidden="true">🌲</span><span data-i18n="pine">Spruce</span><small data-i18n="free">Free</small></button>
+          <button type="button" data-tree-type="baobab" aria-pressed="false" hidden disabled><span aria-hidden="true">🌳</span><span data-i18n="baobab">Baobab</span><small data-i18n="free">Free</small></button>
         </div>
         <div class="shop-section-title" data-i18n="smallPlants">Plants</div>
         <div class="plant-options">

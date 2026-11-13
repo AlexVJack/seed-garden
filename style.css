@@ -55,8 +55,6 @@ progress::-moz-progress-bar { background: #8aa675; }
 .plant-options button[aria-pressed="true"] { border-color: #739d65; background: #e7eddf; box-shadow: 0 0 0 1px #739d65; }
 .plant-options small { color: #879084; font-size: 9px; }
 .shop-section-title { margin: 10px 0 6px; color: #879084; font-size: 10px; }
-.tree-options button { flex-direction: row; justify-content: center; flex-wrap: wrap; }
-.tree-options small { width: 100%; }
 .expansion-progress { margin-top: 8px; border-top: 1px solid #e7e5da; padding-top: 10px; font-size: 10px; color: #7d8975; }
 .expansion-progress summary { cursor: pointer; min-height: 30px; }
 .expansion-progress ul { list-style: none; margin: 0; padding: 0; }
@@ -94,7 +92,7 @@ footer { position: absolute; bottom: 32px; left: 8%; right: 8%; display: flex; j
   .eyebrow { font-size: 9px; }
   #shop-toggle, #shears-toggle { left: 39px; }
   .plant-shop { top: auto; bottom: 70px; left: 50%; transform: translateX(-50%); width: calc(100% - 28px); max-width: 370px; padding: 9px 12px; }
-  .plant-options button { flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 7px 3px; }
+  .plant-options button { padding: 7px 3px; }
   .plant-options button > span:first-child { font-size: 18px; }
   .plant-options small { width: 100%; }
   .shop-heading { margin-bottom: 6px; }

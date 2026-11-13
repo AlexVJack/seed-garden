@@ -8,7 +8,10 @@ export const hexDirections = Object.freeze([
 ].map(Object.freeze));
 export const hexKey = ({ q, r }) => `${q},${r}`;
 export const treeKind = (id) => id % 2 === 0 ? 'apple' : 'pine';
-export const canPlantTree = (type, id) => (type === 'apple' || type === 'pine') && (id >= 1 || type === treeKind(id));
+export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna' });
+export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3 });
+export const canPlantTree = (type, id, plotCount = id + 1) => Object.hasOwn(treeBiomes, type)
+  && plotCount >= treeUnlockPlots[type] && (id >= 1 || type === 'apple');
 export function parcelPosition({ q, r }) {
   const distance = 2 * 2.67 * Math.cos(Math.PI / 6);
   return { x: distance * (q + r / 2), z: distance * Math.sqrt(3) / 2 * r };

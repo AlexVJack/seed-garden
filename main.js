@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { announce, setUiState, translate } from './i18n.js';
 import { createResources } from './resources.js';
-import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, canPlantTree } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, canPlantTree, treeBiomes, treeUnlockPlots } from './garden-layout.js';
 import { makePlant } from './plants.js';
 import { makeTree } from './trees.js';
 import { makeTerrain, groundY } from './terrain.js';
@@ -52,7 +52,7 @@ floor.receiveShadow = true;
 scene.add(floor);
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
-const isTree = (type) => type === 'apple' || type === 'pine';
+const isTree = (type) => Object.hasOwn(treeBiomes, type);
 const views = [];
 let activeParcel = 0;
 let selectedType = null;
@@ -227,12 +227,12 @@ function updateUI() {
   });
   document.querySelectorAll('[data-tree-type]').forEach((button) => {
     const type = button.dataset.treeType;
-    button.hidden = type === 'pine' && views.length < 2;
-    button.disabled = Boolean(record.tree) || !canPlantTree(type, activeParcel);
+    button.hidden = views.length < treeUnlockPlots[type];
+    button.disabled = Boolean(record.tree) || !canPlantTree(type, activeParcel, views.length);
     button.setAttribute('aria-pressed', String(type === selectedType));
   });
   views.forEach((parcel) => {
-    const biome = parcel.id === activeParcel && isTree(selectedType) ? selectedType === 'pine' ? 'conifer' : 'meadow' : resources.parcel(parcel.id).biome;
+    const biome = parcel.id === activeParcel && isTree(selectedType) ? treeBiomes[selectedType] : resources.parcel(parcel.id).biome;
     if (parcel.biome !== biome) {
       parcel.biome = biome;
       parcel.terrain.setBiome(biome);
@@ -314,7 +314,7 @@ $('#shears-toggle').addEventListener('click', () => {
 function selectType(type) {
   shearsActive = false;
   const record = resources.parcel(activeParcel);
-  if (isTree(type) && (record.tree || !canPlantTree(type, activeParcel))) return;
+  if (isTree(type) && (record.tree || !canPlantTree(type, activeParcel, views.length))) return;
   selectedType = selectedType === type ? null : type;
   if (selectedType) {
     const target = views[activeParcel].root.position.clone().add(new THREE.Vector3(0, 0.5, 0));

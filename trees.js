@@ -6,6 +6,8 @@ const material = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0
 const bark = material('#907052');
 const leaves = ['#8fa96b', '#a8bc7b', '#78955d', '#b8c88b', '#95ae73'].map(material);
 const needles = ['#315643', '#416b4d', '#537957', '#64865c'].map(material);
+const baobabBark = material('#a58b76');
+const savannaLeaves = ['#74834c', '#8f9754', '#a1a85e', '#667b47'].map(material);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const needleGeometry = new THREE.ConeGeometry(1, 1, 7);
 const up = new THREE.Vector3(0, 1, 0);
@@ -21,11 +23,11 @@ export function makeTree(kind, seed) {
     pieces.push({ mesh, birth, span, scale });
     mesh.scale.setScalar(0);
   }
-  function segment(origin, direction, length, bottomRadius, topRadius, birth, span) {
+  function segment(origin, direction, length, bottomRadius, topRadius, birth, span, surface = bark) {
     const geometry = new THREE.CylinderGeometry(topRadius, bottomRadius, length, 7);
     geometry.translate(0, length / 2, 0);
     ownedGeometries.push(geometry);
-    const mesh = new THREE.Mesh(geometry, bark);
+    const mesh = new THREE.Mesh(geometry, surface);
     mesh.position.copy(origin);
     mesh.quaternion.setFromUnitVectors(up, direction);
     grow(mesh, birth, span, new THREE.Vector3(1, 1, 1));
@@ -62,7 +64,41 @@ export function makeTree(kind, seed) {
     if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
   }
 
-  if (kind === 'pine') {
+  if (kind === 'baobab') {
+    const height = 2.1 + random() * 0.55;
+    const width = 0.48 + random() * 0.16;
+    const lean = new THREE.Vector3((random() - 0.5) * 0.12, 1, (random() - 0.5) * 0.12).normalize();
+    const radii = [1.12, 1.04, 1.08, 1.02, 0.86, 0.68, 0.53];
+    for (let i = 0; i < radii.length - 1; i++) {
+      segment(lean.clone().multiplyScalar(height * i / 6), lean, height / 6,
+        width * radii[i], width * radii[i + 1], 0.02 + i * 0.045, 0.09, baobabBark);
+    }
+    const limbs = 5 + Math.floor(random() * 3);
+    const baseAngle = random() * Math.PI * 2;
+    for (let i = 0; i < limbs; i++) {
+      const angle = baseAngle + i * Math.PI * 2 / limbs + (random() - 0.5) * 0.35;
+      const origin = lean.clone().multiplyScalar(height * (0.83 + random() * 0.14));
+      const heading = new THREE.Vector3(Math.cos(angle) * 0.65, 0.8 + random() * 0.5, Math.sin(angle) * 0.65).normalize();
+      const length = 0.65 + random() * 0.55;
+      segment(origin, heading, length, width * 0.36, 0.09, 0.3 + i * 0.012, 0.19, baobabBark);
+      const fork = origin.clone().addScaledVector(heading, length);
+      for (let j = 0; j < 3; j++) {
+        const forkAngle = angle + (j - 1) * 0.85 + (random() - 0.5) * 0.3;
+        const direction = new THREE.Vector3(Math.cos(forkAngle), 0.45 + random() * 0.7, Math.sin(forkAngle)).normalize();
+        const reach = 0.4 + random() * 0.5;
+        segment(fork, direction, reach, 0.085, 0.025, 0.5 + j * 0.025, 0.18, baobabBark);
+        const tip = fork.clone().addScaledVector(direction, reach);
+        const clusters = 2 + Math.floor(random() * 3);
+        for (let k = 0; k < clusters; k++) {
+          const mesh = new THREE.Mesh(leafGeometry, savannaLeaves[Math.floor(random() * savannaLeaves.length)]);
+          mesh.position.copy(tip).add(new THREE.Vector3((random() - 0.5) * 0.5, random() * 0.12, (random() - 0.5) * 0.5));
+          mesh.rotation.y = random() * Math.PI;
+          const size = 0.65 + random() * 0.4;
+          grow(mesh, 0.7 + random() * 0.1, 0.18, new THREE.Vector3(size * 1.1, size * 0.5, size));
+        }
+      }
+    }
+  } else if (kind === 'pine') {
     const height = 3.5 + random() * 0.7;
     const tiers = 9 + Math.floor(random() * 3);
     const lean = new THREE.Vector3((random() - 0.5) * 0.1, 1, (random() - 0.5) * 0.1).normalize();

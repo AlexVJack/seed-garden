@@ -64,8 +64,9 @@ export function makeTerrain({ hasQuarry = false } = {}) {
   group.add(outline);
   return { group, quarry, ground, outline, setBiome(biome) {
     const conifer = biome === 'conifer';
-    earth.color.set(conifer ? '#716349' : '#a68563');
-    turf.color.set(conifer ? '#657a55' : '#a8b782');
-    grass.color.set(conifer ? '#4d684b' : '#899e69');
+    const savanna = biome === 'savanna';
+    earth.color.set(savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
+    turf.color.set(savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
+    grass.color.set(savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
   } };
 }

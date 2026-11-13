@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createResources, stoneLimit } from '../resources.js';
-import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind } from '../garden-layout.js';
+import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes } from '../garden-layout.js';
 
 function storage(initial = null) {
   let value = initial;
@@ -380,4 +380,40 @@ test('existing multi-plot saves without explicit species retain their original t
   });
   garden.mineStone();
   assert.deepEqual(createResources(saved).parcels, garden.parcels);
+});
+
+test('baobab unlocks at three plots and can then be planted on the empty second plot', () => {
+  const tree = eligibleSave().tree;
+  const twoPlots = [0, 1].map((q) => ({ q, r: 0, plants: [], tree: null }));
+  const locked = createResources(storage(JSON.stringify({ parcels: twoPlots })));
+  assert.equal(locked.setTree(tree, 1, 'baobab'), false);
+  assert.equal(canPlantTree('baobab', 1, 2), false);
+  assert.equal(canPlantTree('baobab', 1, 3), true);
+  assert.equal(canPlantTree('baobab', 0, 3), false);
+  const saved = storage(JSON.stringify({ parcels: [...twoPlots, { q: 2, r: 0, plants: [], tree: null }] }));
+  const garden = createResources(saved);
+  assert.equal(garden.setTree(tree, 0, 'baobab'), false);
+  assert.equal(garden.setTree(tree, 1, 'baobab'), true);
+  const restored = createResources(saved);
+  assert.equal(restored.parcel(1).treeType, 'baobab');
+  assert.equal(restored.parcel(1).biome, 'savanna');
+  assert.deepEqual(restored.parcel(1).tree, tree);
+});
+
+test('all unlocked species persist on plots 3 through 12 with independent biome and plants', () => {
+  for (let id = 2; id < parcelLimit; id++) {
+    for (const type of Object.keys(treeBiomes)) {
+      const parcels = Array.from({ length: id + 1 }, (_, q) => ({ q, r: 0, plants: [], tree: null }));
+      const saved = storage(JSON.stringify({ stone: 100, parcels }));
+      const garden = createResources(saved);
+      assert.equal(garden.plant('flower', 0, 99, id), true);
+      assert.equal(garden.setTree(eligibleSave().tree, id, type), true);
+      const restored = createResources(saved);
+      assert.equal(restored.parcel(id).treeType, type);
+      assert.equal(restored.parcel(id).biome, treeBiomes[type]);
+      assert.deepEqual(restored.parcel(id).plants, [{ type: 'flower', slot: 0, seed: 99 }]);
+      assert.equal(restored.parcel(id - 1).biome, 'meadow');
+      assert.equal(restored.setTree(eligibleSave().tree, id, 'apple'), false);
+    }
+  }
 });

@@ -1,4 +1,4 @@
-import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree, treeBiomes } from './garden-layout.js';
 
 const storageKey = 'seed-garden-resources';
 export const stoneLimit = 10000;
@@ -24,13 +24,13 @@ export function createResources(storage) {
       return true;
     }).map(({ type, seed, slot }) => ({ type, seed, slot }));
   }
-  function readParcel(record, id) {
+  function readParcel(record, id, plotCount = id + 1) {
     const tree = validTree(record?.tree) ? copyTree(record.tree) : null;
     // Older saves inferred the species from plot order; newer saves remember the player's choice.
-    const type = canPlantTree(record.treeType, id) ? record.treeType : treeKind(id);
+    const type = canPlantTree(record.treeType, id, plotCount) ? record.treeType : treeKind(id);
     return { q: record.q, r: record.r, plants: readPlants(record.plants), tree,
       ...(tree ? { treeType: type } : {}),
-      biome: type === 'pine' && (tree || record.biome === 'conifer') ? 'conifer' : 'meadow' };
+      biome: tree || record.biome === treeBiomes[type] ? treeBiomes[type] : 'meadow' };
   }
   try {
     const saved = JSON.parse(storage.getItem(storageKey));
@@ -42,7 +42,7 @@ export function createResources(storage) {
         if (restored.length === 0) {
           if (record.q !== 0 || record.r !== 0) continue;
         } else if (!expansionTargets(restored).some((target) => hexKey(target) === hexKey(record))) continue;
-        restored.push(readParcel(record, restored.length));
+        restored.push(readParcel(record, restored.length, Math.min(saved.parcels.length, parcelLimit)));
       }
       if (restored.length) parcels = restored;
     } else {
@@ -121,10 +121,10 @@ export function createResources(storage) {
     },
     setTree(value, parcelId = 0, type = treeKind(parcelId)) {
       const parcel = parcelAt(parcelId);
-      if (!parcel || !validTree(value) || parcel.tree || !canPlantTree(type, parcelId)) return false;
+      if (!parcel || !validTree(value) || parcel.tree || !canPlantTree(type, parcelId, parcels.length)) return false;
       parcel.tree = copyTree(value);
       parcel.treeType = type;
-      parcel.biome = type === 'pine' ? 'conifer' : 'meadow';
+      parcel.biome = treeBiomes[type];
       save();
       return true;
     },
