@@ -36,10 +36,10 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - The tree's seed, position and planting time, other plants, and stone are saved locally in your browser. Tree growth accounts for time spent away from the page.
 - Planted trees cannot be removed or replaced. Clearing site data removes the saved garden. If browser storage is unavailable, the garden only lasts until reload.
 
-## Expanding the garden: up to 12 plots
+## Expanding the garden: up to 36 plots
 
 - Each expansion requires **150 stone, a grown tree, 3 bushes, 6 mushrooms, and 8 flowers** on the **most recently unlocked plot**, all at once. The shop's “Next hexagon” section identifies that plot and shows progress. Existing plants are not consumed.
-- Once ready, translucent hexagons with plus signs mark every free neighboring position around the garden. Pick one to add a plot and spend **150 stone**. Occupied positions are excluded and shared neighbors appear only once. The limit is **12 plots**, including the first.
+- Once ready, translucent hexagons with plus signs mark every free neighboring position around the garden. Pick one to add a plot and spend **150 stone**. Occupied positions are excluded and shared neighbors appear only once. The limit is **36 plots**, including the first.
 - Every new plot starts as a standard biome with **24 places** and its own dark grey mining rock. The rock's position, shape and proportions are seeded from plot coordinates and stay the same after reload. It avoids the tree and planting places; tapping adds **1 stone** to the shared balance and briefly lights up that rock.
 - Plots vary subtly in soil tint and the arrangement of grey decorative stones and grass tufts. Decoration is seeded from plot coordinates, so it stays the same after reload and avoids planting places. Stones and grass use instancing for inexpensive rendering.
 - Tree seeds are free. Plot 1 grows an **apple tree**. Starting with plot 2, freely choose an **apple tree** or **spruce**; its type and biome are saved. Already planted trees remain unchanged. Navigation uses neutral names: **Plot 1**, **Plot 2**, and so on.
@@ -47,6 +47,12 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - Unlocking the third plot makes **baobab** available on any empty plot from plot 2 onward. Its **savanna** biome has sandy ochre soil, half-dry bushes, orange flowers and morel-like mushrooms. Each baobab has randomized thick-trunk proportions, branches and patches of foliage, and grows over 26 seconds. Selecting it previews the biome; planting saves it, while cancelling restores the previous appearance. All plants are procedural and retain their appearance after reload.
 - Switch plots using the horizontally scrollable bottom buttons or by tapping a plot. **Overview** fits the entire garden in view; selecting a plot brings the camera closer. Each plot has its own permanent tree.
 - Old one-plot and two-plot saves are loaded automatically, preserving plants, tree seeds, growth times, stone and the second plot's position.
+
+## Desert biome
+
+After unlocking the fourth plot, **palm** seeds become available on any empty plot except the first. Selecting a palm previews pale sand, sand ripples and terracotta pebbles; canceling restores the previous biome. Planting saves the desert biome and a procedural palm with a curved trunk and feathery fronds. Growth takes 26 seconds and resumes after reloading.
+
+Desert plants replace the existing categories: flowering succulents cost **1 stone**, round ribbed cacti **2 stone**, and agaves **3 stone**. Expansion still requires a mature tree, 3 agaves, 6 cacti, 8 succulents and 150 stone on the latest plot. Plant removal works as before, without refunds. Shop and requirement labels follow the corresponding plot's biome in both languages.
 
 ## Checks
 

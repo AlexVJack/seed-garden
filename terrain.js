@@ -10,12 +10,15 @@ const groundGeometry = new THREE.CylinderGeometry(2.67, 2.65, 0.12, 6);
 const grassGeometry = new THREE.ConeGeometry(0.025, 1, 3);
 const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
 const rockMaterial = material('#b1b4b2');
+const rippleGeometry = new THREE.TorusGeometry(0.15, 0.008, 3, 12, Math.PI * 0.85);
 
 export function makeTerrain({ q = 0, r = 0 } = {}) {
   const group = new THREE.Group();
   const earth = material('#a68563');
   const turf = material('#a8b782');
   const grass = material('#899e69');
+  const stones = rockMaterial.clone();
+  const sandRidges = material('#dfc38b');
   const soil = new THREE.Mesh(soilGeometry, earth);
   soil.position.y = -0.115;
   soil.castShadow = soil.receiveShadow = true;
@@ -46,8 +49,10 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   group.add(quarry);
   const rockCount = 4 + Math.floor(random() * 3);
   const tuftCount = 7 + Math.floor(random() * 4);
-  const rocks = new THREE.InstancedMesh(rockGeometry, rockMaterial, rockCount);
+  const rocks = new THREE.InstancedMesh(rockGeometry, stones, rockCount);
   const grasses = new THREE.InstancedMesh(grassGeometry, grass, tuftCount * 3);
+  const ripples = new THREE.InstancedMesh(rippleGeometry, sandRidges, tuftCount);
+  ripples.visible = false;
   rocks.castShadow = true;
   const occupied = [];
   const transform = new THREE.Object3D();
@@ -73,6 +78,11 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
       rocks.setMatrixAt(index, transform.matrix);
     } else {
       const heading = random() * Math.PI * 2;
+      transform.position.set(x, groundY + 0.008, z);
+      transform.scale.set(1, 0.6, 1);
+      transform.rotation.set(-Math.PI / 2, 0, heading);
+      transform.updateMatrix();
+      ripples.setMatrixAt(index - rockCount, transform.matrix);
       for (let blade = 0; blade < 3; blade++) {
         const height = 0.1 + random() * 0.18;
         transform.position.set(x + Math.cos(heading) * (blade - 1) * 0.025, groundY + height * 0.44, z + Math.sin(heading) * (blade - 1) * 0.025);
@@ -85,8 +95,10 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   }
   rocks.count = Math.min(rockCount, occupied.length);
   grasses.count = Math.max(0, occupied.length - rockCount) * 3;
+  ripples.count = Math.max(0, occupied.length - rockCount);
+  ripples.instanceMatrix.needsUpdate = true;
   rocks.instanceMatrix.needsUpdate = grasses.instanceMatrix.needsUpdate = true;
-  group.add(rocks, grasses);
+  group.add(rocks, grasses, ripples);
   const outlinePoints = Array.from({ length: 7 }, (_, i) => {
     const angle = Math.PI / 2 + i * Math.PI / 3;
     return new THREE.Vector3(Math.cos(angle) * 2.66, groundY + 0.018, Math.sin(angle) * 2.66);
@@ -97,8 +109,12 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   return { group, quarry, ground, outline, setBiome(biome) {
     const conifer = biome === 'conifer';
     const savanna = biome === 'savanna';
-    earth.color.set(savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
-    turf.color.set(savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
+    const desert = biome === 'desert';
+    grasses.visible = !desert;
+    ripples.visible = desert;
+    stones.color.set(desert ? '#ba8768' : '#b1b4b2');
+    earth.color.set(desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
+    turf.color.set(desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
     grass.color.set(savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
     earth.color.offsetHSL(hueShift, 0, lightnessShift * 0.6);
     turf.color.offsetHSL(hueShift, 0, lightnessShift);

@@ -25,6 +25,14 @@ test('terrain seeds are stable unsigned integers and distinguish neighboring plo
   }
 });
 
+test('terrain seeds preserve the appearance of all previously available plots', () => {
+  for (let q = -11; q <= 11; q++) {
+    for (let r = -11; r <= 11; r++) {
+      assert.equal(terrainSeed({ q, r }), (Math.imul(q + 12 + (r + 12) * 25, 0x9e3779b1) ^ 42) >>> 0);
+    }
+  }
+});
+
 test('every possible plot gets a stable quarry clear of planting slots, the tree and hexagon edges', () => {
   const positions = new Set();
   const shapes = new Set();
@@ -330,8 +338,8 @@ function completeParcel(garden, id) {
   });
 }
 
-test('a garden reaches exactly 12 persistent independent plots with alternating trees', () => {
-  assert.equal(parcelLimit, 12);
+test('a garden reaches exactly 36 persistent independent plots with alternating trees', () => {
+  assert.equal(parcelLimit, 36);
   const saved = storage('{"stone":10000}');
   let garden = createResources(saved);
   for (let id = 0; id < parcelLimit; id++) {
@@ -349,8 +357,8 @@ test('a garden reaches exactly 12 persistent independent plots with alternating 
     assert.deepEqual(garden.parcels, snapshot);
     assert.equal(garden.canExpand(), false);
   }
-  assert.equal(garden.parcels.length, 12);
-  assert.equal(new Set(garden.parcels.map(hexKey)).size, 12);
+  assert.equal(garden.parcels.length, 36);
+  assert.equal(new Set(garden.parcels.map(hexKey)).size, 36);
   assert.equal(garden.canExpand(), false);
   assert.deepEqual(garden.expansionTargets(), []);
   const balance = garden.stone;
@@ -379,12 +387,12 @@ test('new-format saves reject duplicates, disconnected and malformed positions a
     assert.equal(garden.setTree(eligibleSave().tree, id), false);
   }
   assert.equal(garden.stone, 1000);
-  const oversized = createResources(storage(JSON.stringify({ parcels: Array.from({ length: 20 }, (_, q) => ({ ...parcel, q })) })));
-  assert.equal(oversized.parcels.length, 12);
+  const oversized = createResources(storage(JSON.stringify({ parcels: Array.from({ length: 40 }, (_, q) => ({ ...parcel, q })) })));
+  assert.equal(oversized.parcels.length, 36);
   assert.equal(oversized.canExpand(), false);
 });
 
-test('plots 2 through 12 accept either tree and preserve the chosen species and biome on reload', () => {
+test('plots 2 through 36 accept either tree and preserve the chosen species and biome on reload', () => {
   for (let id = 1; id < parcelLimit; id++) {
     for (const type of ['apple', 'pine']) {
       const parcels = Array.from({ length: id + 1 }, (_, q) => ({ q, r: 0, plants: [], tree: null, biome: 'meadow' }));
@@ -426,6 +434,19 @@ test('existing multi-plot saves without explicit species retain their original t
   assert.deepEqual(createResources(saved).parcels, garden.parcels);
 });
 
+test('an existing full 12-plot garden can expand without losing progress', () => {
+  const parcels = Array.from({ length: 12 }, (_, q) => ({ ...eligibleSave(), q, r: 0 }));
+  const saved = storage(JSON.stringify({ version: 2, stone: 1000, parcels }));
+  const garden = createResources(saved);
+  const before = garden.parcels;
+  assert.equal(garden.canExpand(), true);
+  assert.equal(garden.expand({ q: 12, r: 0 }), true);
+  const restored = createResources(saved);
+  assert.equal(restored.parcels.length, 13);
+  assert.deepEqual(restored.parcels.slice(0, 12), before);
+  assert.equal(restored.stone, 1000 - expansionCost);
+});
+
 test('baobab unlocks at three plots and can then be planted on the empty second plot', () => {
   const tree = eligibleSave().tree;
   const twoPlots = [0, 1].map((q) => ({ q, r: 0, plants: [], tree: null }));
@@ -444,9 +465,10 @@ test('baobab unlocks at three plots and can then be planted on the empty second 
   assert.deepEqual(restored.parcel(1).tree, tree);
 });
 
-test('all unlocked species persist on plots 3 through 12 with independent biome and plants', () => {
+test('all unlocked species persist on plots 3 through 36 with independent biome and plants', () => {
   for (let id = 2; id < parcelLimit; id++) {
     for (const type of Object.keys(treeBiomes)) {
+      if (!canPlantTree(type, id, id + 1)) continue;
       const parcels = Array.from({ length: id + 1 }, (_, q) => ({ q, r: 0, plants: [], tree: null }));
       const saved = storage(JSON.stringify({ stone: 100, parcels }));
       const garden = createResources(saved);
@@ -460,4 +482,27 @@ test('all unlocked species persist on plots 3 through 12 with independent biome 
       assert.equal(restored.setTree(eligibleSave().tree, id, 'apple'), false);
     }
   }
+});
+
+test('palm unlocks at four plots, preserves desert plants and supports expansion and shears', () => {
+  const parcels = Array.from({ length: 3 }, (_, q) => ({ q, r: 0, plants: [], tree: null }));
+  const locked = createResources(storage(JSON.stringify({ parcels })));
+  assert.equal(locked.setTree(eligibleSave().tree, 1, 'palm'), false);
+  parcels.push({ q: 3, r: 0, plants: [], tree: null });
+  const saved = storage(JSON.stringify({ stone: 1000, parcels }));
+  const garden = createResources(saved);
+  assert.equal(garden.setTree(eligibleSave().tree, 0, 'palm'), false);
+  assert.equal(garden.setTree(eligibleSave().tree, 1, 'palm'), true);
+  assert.equal(garden.setTree(eligibleSave().tree, 3, 'palm'), true);
+  eligibleSave().plants.forEach(({ type, slot, seed }) => assert.equal(garden.plant(type, slot, seed, 3), true));
+  const restored = createResources(saved);
+  assert.deepEqual(restored.parcels, garden.parcels);
+  assert.equal(restored.parcel(3).treeType, 'palm');
+  assert.equal(restored.parcel(3).biome, 'desert');
+  assert.equal(restored.canExpand(), true);
+  assert.equal(restored.removePlant(0, 3), true);
+  assert.equal(restored.canExpand(), false);
+  assert.equal(restored.plant('bush', 0, 99, 3), true);
+  assert.equal(restored.expand({ q: 4, r: 0 }), true);
+  assert.equal(createResources(saved).parcel(3).biome, 'desert');
 });

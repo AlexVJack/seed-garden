@@ -1,16 +1,22 @@
 export const plantCosts = Object.freeze({ flower: 1, mushroom: 2, bush: 3 });
 export const growthDuration = 26000;
 export const expansionCost = 150;
-export const parcelLimit = 12;
+export const parcelLimit = 36;
 export const hexDirections = Object.freeze([
   { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 },
   { q: -1, r: 0 }, { q: 0, r: -1 }, { q: 1, r: -1 },
 ].map(Object.freeze));
 export const hexKey = ({ q, r }) => `${q},${r}`;
-export const terrainSeed = ({ q, r }) => (Math.imul(q + parcelLimit + (r + parcelLimit) * (parcelLimit * 2 + 1), 0x9e3779b1) ^ 42) >>> 0;
+// Keep terrain stable across garden limit changes, including existing saves.
+export const terrainSeed = ({ q, r }) => {
+  const index = Math.abs(q) < 12 && Math.abs(r) < 12
+    ? q + 12 + (r + 12) * 25
+    : 625 + q + 36 + (r + 36) * 73;
+  return (Math.imul(index, 0x9e3779b1) ^ 42) >>> 0;
+};
 export const treeKind = (id) => id % 2 === 0 ? 'apple' : 'pine';
-export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna' });
-export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3 });
+export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna', palm: 'desert' });
+export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3, palm: 4 });
 export const canPlantTree = (type, id, plotCount = id + 1) => Object.hasOwn(treeBiomes, type)
   && plotCount >= treeUnlockPlots[type] && (id >= 1 || type === 'apple');
 export function parcelPosition({ q, r }) {

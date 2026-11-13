@@ -268,6 +268,17 @@ function updateUI() {
     plantingStatus: isTree(selectedType) ? 'treeHint' : full ? 'gardenFull' : selectedType ? 'chooseSpot' : 'choosePlant',
     placement: shearsActive ? 'shearsHint' : isTree(selectedType) ? 'treeHint' : 'placePlant' });
   const progress = resources.expansionProgress();
+  const desertLabels = { flower: 'succulent', mushroom: 'cactus', bush: 'agave' };
+  for (const type of Object.keys(plantCosts)) {
+    const label = $(`[data-plant-type="${type}"] [data-i18n]`);
+    label.dataset.i18n = view.biome === 'desert' ? desertLabels[type] : type;
+    label.textContent = translate(label.dataset.i18n);
+    const icon = $(`[data-plant-type="${type}"] [aria-hidden]`);
+    icon.textContent = view.biome === 'desert' ? { flower: '🌸', mushroom: '🌵', bush: '🌿' }[type] : { flower: '🌸', mushroom: '🍄', bush: '🌿' }[type];
+    const goalLabel = $(`#goal-${type}`).previousElementSibling;
+    goalLabel.dataset.i18n = resources.parcel(progress.parcelId).biome === 'desert' ? desertLabels[type] : type;
+    goalLabel.textContent = translate(goalLabel.dataset.i18n);
+  }
   for (const [key, goal] of Object.entries({ stone: expansionCost, bush: 3, mushroom: 6, flower: 8 })) {
     $(`#goal-${key}`).textContent = `${Math.min(progress[key], goal)} / ${goal}`;
   }

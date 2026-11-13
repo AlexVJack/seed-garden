@@ -8,6 +8,9 @@ const leaves = ['#8fa96b', '#a8bc7b', '#78955d', '#b8c88b', '#95ae73'].map(mater
 const needles = ['#315643', '#416b4d', '#537957', '#64865c'].map(material);
 const baobabBark = material('#a58b76');
 const savannaLeaves = ['#74834c', '#8f9754', '#a1a85e', '#667b47'].map(material);
+const palmBark = material('#b3946b');
+const palmRachis = material('#6b8950');
+const palmLeaves = ['#527d4c', '#699452', '#83a45f'].map(material);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const needleGeometry = new THREE.ConeGeometry(1, 1, 7);
 const up = new THREE.Vector3(0, 1, 0);
@@ -64,7 +67,40 @@ export function makeTree(kind, seed) {
     if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
   }
 
-  if (kind === 'baobab') {
+  if (kind === 'palm') {
+    const height = 3.1 + random() * 0.65;
+    const bend = new THREE.Vector3((random() - 0.5) * 0.8, 0, (random() - 0.5) * 0.8);
+    const trunkPoint = (t) => new THREE.Vector3(bend.x * t * t, height * t, bend.z * t * t);
+    for (let i = 0; i < 14; i++) {
+      const origin = trunkPoint(i / 14);
+      const delta = trunkPoint((i + 1) / 14).sub(origin);
+      segment(origin, delta.clone().normalize(), delta.length(), 0.15 - i * 0.004, 0.14 - i * 0.004, i * 0.035, 0.07, palmBark);
+    }
+    const crown = trunkPoint(1);
+    const count = 9 + Math.floor(random() * 4);
+    const phase = random() * Math.PI * 2;
+    for (let i = 0; i < count; i++) {
+      const angle = phase + i * Math.PI * 2 / count;
+      const reach = 1.2 + random() * 0.45;
+      const surface = palmLeaves[Math.floor(random() * palmLeaves.length)];
+      const point = (t) => crown.clone().add(new THREE.Vector3(Math.cos(angle) * reach * t, Math.sin(t * Math.PI) * 0.45 - t * t * 0.45, Math.sin(angle) * reach * t));
+      for (let j = 0; j < 7; j++) {
+        const t = j / 7;
+        const origin = point(t);
+        const delta = point((j + 1) / 7).sub(origin);
+        segment(origin, delta.clone().normalize(), delta.length(), 0.022 * (1 - t) + 0.004, 0.006, 0.48 + t * 0.24, 0.13, palmRachis);
+        if (j === 0) continue;
+        for (const side of [-1, 1]) {
+          const length = Math.sin(t * Math.PI) * (0.38 + random() * 0.08);
+          const heading = new THREE.Vector3(Math.cos(angle) * 0.3 - Math.sin(angle) * side, -0.25, Math.sin(angle) * 0.3 + Math.cos(angle) * side).normalize();
+          const blade = new THREE.Mesh(leafGeometry, surface);
+          blade.position.copy(origin).addScaledVector(heading, length * 0.5);
+          blade.quaternion.setFromUnitVectors(up, heading);
+          grow(blade, 0.55 + t * 0.24, 0.14, new THREE.Vector3(0.12, length * 1.5, 0.04));
+        }
+      }
+    }
+  } else if (kind === 'baobab') {
     const height = 2.1 + random() * 0.55;
     const width = 0.48 + random() * 0.16;
     const lean = new THREE.Vector3((random() - 0.5) * 0.12, 1, (random() - 0.5) * 0.12).normalize();

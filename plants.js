@@ -14,6 +14,10 @@ const dryGreens = ['#969057', '#b5a16b', '#7e804e', '#c0a375'].map(material);
 const orangeFlowers = ['#e78735', '#eea044', '#ce652b', '#f1ad58'].map(material);
 const morelCaps = ['#947044', '#ad8953', '#84643e'].map(material);
 const morelRidge = material('#c5a16a');
+const desertGreens = ['#749578', '#8eaa8b', '#537e6b'].map(material);
+const cactusRib = material('#a0b38a');
+const spines = material('#eee0b5');
+const desertBlooms = ['#e29ba7', '#f0cb6b'].map(material);
 const cream = material('#eee2c3');
 const center = material('#d5ab59');
 const barkMaterial = material('#786049');
@@ -43,6 +47,45 @@ export function makePlant(type, seed, biome = 'meadow') {
     return mesh;
   }
   const green = greenPalette[Math.floor(random() * greenPalette.length)];
+  if (biome === 'desert') {
+    const surface = desertGreens[Math.floor(random() * desertGreens.length)];
+    if (type === 'mushroom') {
+      const radius = 0.13 + random() * 0.045;
+      const height = radius * (1.1 + random() * 0.35);
+      add(sphere, surface, 0, height * 0.85, 0, radius, height, radius);
+      for (let rib = 0; rib < 9; rib++) {
+        const angle = rib * Math.PI * 2 / 9;
+        add(sphere, cactusRib, Math.cos(angle) * radius * 0.84, height * 0.85, Math.sin(angle) * radius * 0.84, radius * 0.22, height * 0.92, radius * 0.22);
+        for (let row = 0; row < 3; row++) {
+          const y = height * (0.4 + row * 0.45);
+          const r = radius * Math.sqrt(1 - ((y - height * 0.85) / height) ** 2);
+          const spike = add(cone, spines, Math.cos(angle) * (r + 0.012), y, Math.sin(angle) * (r + 0.012), 0.008, 0.05, 0.008);
+          spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(angle), 0.25, Math.sin(angle)).normalize());
+        }
+      }
+    } else {
+      const agave = type === 'bush';
+      const count = agave ? 11 : 14;
+      for (let i = 0; i < count; i++) {
+        const angle = i * Math.PI * 2 / (agave ? count : 7) + (i >= 7 ? 0.35 : 0);
+        const length = (agave ? 0.34 : i < 7 ? 0.2 : 0.14) * (0.85 + random() * 0.3);
+        const direction = new THREE.Vector3(Math.cos(angle), agave ? 0.7 + random() : 0.35, Math.sin(angle)).normalize();
+        const blade = add(agave ? cone : leaf, surface, direction.x * length * 0.48, 0.03 + direction.y * length * 0.48, direction.z * length * 0.48, agave ? 0.045 : 0.055, length * (agave ? 1 : 0.6), agave ? 0.018 : 0.025);
+        blade.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+      }
+      if (!agave) {
+        const height = 0.23 + random() * 0.08;
+        add(stem, surface, 0, height / 2, 0, 0.6, height, 0.6);
+        const bloom = desertBlooms[Math.floor(random() * desertBlooms.length)];
+        for (let i = 0; i < 5; i++) {
+          const angle = i * Math.PI * 2 / 5;
+          add(sphere, bloom, Math.cos(angle) * 0.035, height, Math.sin(angle) * 0.035, 0.035, 0.02, 0.035);
+        }
+        add(sphere, center, 0, height + 0.01, 0, 0.02, 0.02, 0.02);
+      }
+    }
+    return group;
+  }
   if (type === 'flower') {
     const height = 0.23 + random() * 0.16;
     group.rotation.z = (random() - 0.5) * 0.15;
