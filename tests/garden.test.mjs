@@ -506,3 +506,36 @@ test('palm unlocks at four plots, preserves desert plants and supports expansion
   assert.equal(restored.expand({ q: 4, r: 0 }), true);
   assert.equal(createResources(saved).parcel(3).biome, 'desert');
 });
+
+test('sakura unlocks at five plots and preserves blossom biome, growth, plants and expansion', () => {
+  const parcels = Array.from({ length: 4 }, (_, q) => ({ q, r: 0, plants: [], tree: null }));
+  const tree = eligibleSave().tree;
+  const locked = createResources(storage(JSON.stringify({ parcels })));
+  assert.equal(locked.setTree(tree, 1, 'sakura'), false);
+  assert.equal(canPlantTree('sakura', 1, 4), false);
+  assert.equal(canPlantTree('sakura', 1, 5), true);
+  parcels.push({ q: 4, r: 0, plants: [], tree: null });
+  const saved = storage(JSON.stringify({ stone: 1000, parcels }));
+  const garden = createResources(saved);
+  assert.equal(garden.setTree(tree, 0, 'sakura'), false);
+  assert.equal(garden.setTree(tree, 1, 'sakura'), true);
+  const growingTree = { ...tree, seed: 8742, startedAt: Date.now() };
+  assert.equal(garden.setTree(growingTree, 4, 'sakura'), true);
+  const before = garden.stone;
+  eligibleSave().plants.forEach(({ type, slot, seed }) => assert.equal(garden.plant(type, slot, seed, 4), true));
+  assert.equal(garden.stone, before - 29);
+  const restored = createResources(saved);
+  assert.deepEqual(restored.parcels, garden.parcels);
+  assert.deepEqual(restored.parcel(4).tree, growingTree);
+  assert.equal(restored.parcel(4).treeType, 'sakura');
+  assert.equal(restored.parcel(4).biome, 'blossom');
+  assert.equal(restored.parcel(3).biome, 'meadow');
+  assert.equal(restored.setTree(tree, 4, 'apple'), false);
+  assert.equal(restored.canExpand(growingTree.startedAt + growthDuration - 1), false);
+  assert.equal(restored.canExpand(growingTree.startedAt + growthDuration), true);
+  assert.equal(restored.removePlant(0, 4), true);
+  assert.equal(restored.canExpand(growingTree.startedAt + growthDuration), false);
+  assert.equal(restored.plant('bush', 0, 99, 4), true);
+  assert.equal(restored.expand({ q: 5, r: 0 }, growingTree.startedAt + growthDuration), true);
+  assert.equal(createResources(saved).parcel(4).biome, 'blossom');
+});

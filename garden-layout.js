@@ -15,8 +15,8 @@ export const terrainSeed = ({ q, r }) => {
   return (Math.imul(index, 0x9e3779b1) ^ 42) >>> 0;
 };
 export const treeKind = (id) => id % 2 === 0 ? 'apple' : 'pine';
-export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna', palm: 'desert' });
-export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3, palm: 4 });
+export const treeBiomes = Object.freeze({ apple: 'meadow', pine: 'conifer', baobab: 'savanna', palm: 'desert', sakura: 'blossom' });
+export const treeUnlockPlots = Object.freeze({ apple: 1, pine: 2, baobab: 3, palm: 4, sakura: 5 });
 export const canPlantTree = (type, id, plotCount = id + 1) => Object.hasOwn(treeBiomes, type)
   && plotCount >= treeUnlockPlots[type] && (id >= 1 || type === 'apple');
 export function parcelPosition({ q, r }) {

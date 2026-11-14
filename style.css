@@ -50,6 +50,7 @@ progress::-moz-progress-bar { background: #8aa675; }
 #close-shop { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 9px; background: #eeefea; color: #747a80; font-size: 22px; }
 #slots-used { font-variant-numeric: tabular-nums; }
 .plant-options { display: flex; gap: 6px; }
+.tree-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .plant-options button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 3px; border: 1px solid #e7e5da; border-radius: 11px; background: #f6f4ed; font-size: 10px; }
 .plant-options button > span:first-child { font-size: 22px; }
 .plant-options button[aria-pressed="true"] { border-color: #739d65; background: #e7eddf; box-shadow: 0 0 0 1px #739d65; }

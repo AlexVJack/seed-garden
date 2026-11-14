@@ -11,6 +11,8 @@ const savannaLeaves = ['#74834c', '#8f9754', '#a1a85e', '#667b47'].map(material)
 const palmBark = material('#b3946b');
 const palmRachis = material('#6b8950');
 const palmLeaves = ['#527d4c', '#699452', '#83a45f'].map(material);
+const sakuraBark = material('#66504f');
+const sakuraBlooms = ['#f7dce4', '#edb4cb', '#df94b5', '#fff0ee'].map(material);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const needleGeometry = new THREE.ConeGeometry(1, 1, 7);
 const up = new THREE.Vector3(0, 1, 0);
@@ -67,7 +69,41 @@ export function makeTree(kind, seed) {
     if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
   }
 
-  if (kind === 'palm') {
+  if (kind === 'sakura') {
+    const height = 1.65 + random() * 0.35;
+    const lean = new THREE.Vector3((random() - 0.5) * 0.45, 0, (random() - 0.5) * 0.45);
+    const trunkPoint = (t) => new THREE.Vector3(lean.x * t * t, height * t, lean.z * t * t);
+    const tint = Math.floor(random() * sakuraBlooms.length);
+    for (let i = 0; i < 7; i++) {
+      const origin = trunkPoint(i / 7);
+      const delta = trunkPoint((i + 1) / 7).sub(origin);
+      segment(origin, delta.clone().normalize(), delta.length(), 0.19 - i * 0.013, 0.177 - i * 0.013, i * 0.04, 0.09, sakuraBark);
+    }
+    const limbs = 5 + Math.floor(random() * 2);
+    const phase = random() * Math.PI * 2;
+    for (let i = 0; i < limbs; i++) {
+      const angle = phase + i * Math.PI * 2 / limbs + (random() - 0.5) * 0.3;
+      const origin = trunkPoint(0.65 + random() * 0.35);
+      const heading = new THREE.Vector3(Math.cos(angle), 0.45 + random() * 0.3, Math.sin(angle)).normalize();
+      const reach = 0.7 + random() * 0.35;
+      segment(origin, heading, reach, 0.095, 0.045, 0.25 + i * 0.012, 0.22, sakuraBark);
+      const fork = origin.clone().addScaledVector(heading, reach);
+      for (let j = 0; j < 3; j++) {
+        const a = angle + (j - 1) * 0.7;
+        const direction = new THREE.Vector3(Math.cos(a), 0.35 + random() * 0.65, Math.sin(a)).normalize();
+        const length = 0.45 + random() * 0.35;
+        segment(fork, direction, length, 0.04, 0.012, 0.46 + j * 0.035, 0.2, sakuraBark);
+        const tip = fork.clone().addScaledVector(direction, length);
+        for (let k = 0; k < 5; k++) {
+          const mesh = new THREE.Mesh(leafGeometry, sakuraBlooms[(tint + (random() < 0.25 ? 1 : 0)) % sakuraBlooms.length]);
+          mesh.position.copy(tip).add(new THREE.Vector3((random() - 0.5) * 0.65, (random() - 0.3) * 0.25, (random() - 0.5) * 0.65));
+          mesh.rotation.set(random(), random() * Math.PI, random());
+          const size = 0.65 + random() * 0.35;
+          grow(mesh, 0.65 + random() * 0.15, 0.18, new THREE.Vector3(size * 1.15, size * 0.55, size));
+        }
+      }
+    }
+  } else if (kind === 'palm') {
     const height = 3.1 + random() * 0.65;
     const bend = new THREE.Vector3((random() - 0.5) * 0.8, 0, (random() - 0.5) * 0.8);
     const trunkPoint = (t) => new THREE.Vector3(bend.x * t * t, height * t, bend.z * t * t);

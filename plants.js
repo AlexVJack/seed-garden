@@ -18,6 +18,10 @@ const desertGreens = ['#749578', '#8eaa8b', '#537e6b'].map(material);
 const cactusRib = material('#a0b38a');
 const spines = material('#eee0b5');
 const desertBlooms = ['#e29ba7', '#f0cb6b'].map(material);
+const groveGreens = ['#587e68', '#72947a', '#8ca58b'].map(material);
+const groveFlowers = ['#f6f0ed', '#d4c1e5', '#b7a4ce'].map(material);
+const groveCaps = ['#b18a88', '#c3a29a', '#d5bca9'].map(material);
+const azaleaBlooms = ['#edafc4', '#d987aa', '#fff0ed'].map(material);
 const cream = material('#eee2c3');
 const center = material('#d5ab59');
 const barkMaterial = material('#786049');
@@ -32,9 +36,10 @@ const ridge = new THREE.TorusGeometry(1, 0.13, 4, 10);
 export function makePlant(type, seed, biome = 'meadow') {
   const conifer = biome === 'conifer';
   const savanna = biome === 'savanna';
-  const greenPalette = savanna ? dryGreens : conifer ? coniferGreens : greens;
-  const flowerPalette = savanna ? orangeFlowers : conifer ? whiteFlowers : flowers;
-  const capPalette = conifer ? brownCaps : caps;
+  const blossom = biome === 'blossom';
+  const greenPalette = blossom ? groveGreens : savanna ? dryGreens : conifer ? coniferGreens : greens;
+  const flowerPalette = blossom ? groveFlowers : savanna ? orangeFlowers : conifer ? whiteFlowers : flowers;
+  const capPalette = blossom ? groveCaps : conifer ? brownCaps : caps;
   const random = createRandom(seed);
   const group = new THREE.Group();
   group.rotation.y = random() * Math.PI * 2;
@@ -87,7 +92,7 @@ export function makePlant(type, seed, biome = 'meadow') {
     return group;
   }
   if (type === 'flower') {
-    const height = 0.23 + random() * 0.16;
+    const height = (blossom ? 0.16 : 0.23) + random() * (blossom ? 0.1 : 0.16);
     group.rotation.z = (random() - 0.5) * 0.15;
     add(stem, green, 0, height / 2, 0, 1, height, 1);
     add(leaf, green, 0.07, height * 0.45, 0, 0.1, 0.035, 0.045).rotation.z = 0.4;
@@ -167,7 +172,19 @@ export function makePlant(type, seed, biome = 'meadow') {
       const angle = random() * Math.PI * 2;
       const r = random() * 0.1;
       const size = 0.1 + random() * 0.055;
-      add(leaf, greens[Math.floor(random() * greens.length)], Math.cos(angle) * r, 0.12 + random() * 0.12, Math.sin(angle) * r, size, size * (0.9 + random() * 0.5), size);
+      const x = Math.cos(angle) * r;
+      const surfaceGreen = greenPalette[Math.floor(random() * greenPalette.length)];
+      const y = 0.12 + random() * 0.12;
+      const z = Math.sin(angle) * r;
+      add(leaf, surfaceGreen, x, y, z, size, size * (0.9 + random() * 0.5), size);
+      if (blossom) {
+        const surface = azaleaBlooms[Math.floor(random() * azaleaBlooms.length)];
+        for (let petal = 0; petal < 5; petal++) {
+          const a = petal * Math.PI * 2 / 5;
+          add(sphere, surface, x + Math.cos(a) * 0.035, y + size * 0.8, z + Math.sin(a) * 0.035, 0.035, 0.018, 0.035);
+        }
+        add(sphere, center, x, y + size * 0.8 + 0.01, z, 0.015, 0.012, 0.015);
+      }
     }
   }
   return group;

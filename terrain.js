@@ -11,6 +11,8 @@ const grassGeometry = new THREE.ConeGeometry(0.025, 1, 3);
 const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
 const rockMaterial = material('#b1b4b2');
 const rippleGeometry = new THREE.TorusGeometry(0.15, 0.008, 3, 12, Math.PI * 0.85);
+const petalGeometry = new THREE.SphereGeometry(1, 5, 3);
+const petalMaterial = material('#efd0dc');
 
 export function makeTerrain({ q = 0, r = 0 } = {}) {
   const group = new THREE.Group();
@@ -99,6 +101,28 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   ripples.instanceMatrix.needsUpdate = true;
   rocks.instanceMatrix.needsUpdate = grasses.instanceMatrix.needsUpdate = true;
   group.add(rocks, grasses, ripples);
+  // Independent decoration stream preserves existing terrain layouts.
+  const petalRandom = createRandom(terrainSeed({ q, r }) ^ 0x53414b55);
+  const petals = new THREE.InstancedMesh(petalGeometry, petalMaterial, 72);
+  let petalCount = 0;
+  for (let attempt = 0; attempt < 500 && petalCount < 72; attempt++) {
+    const angle = petalRandom() * Math.PI * 2;
+    const radius = 0.65 + petalRandom() * 1.5;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    if (plantingSlots.some((slot) => Math.hypot(slot.x - x, slot.z - z) < 0.23)
+      || Math.hypot(x - layout.x, z - layout.z) < quarryRadius + 0.18) continue;
+    transform.position.set(x, groundY + 0.008, z);
+    transform.rotation.set(0, petalRandom() * Math.PI * 2, 0);
+    const size = 0.018 + petalRandom() * 0.018;
+    transform.scale.set(size, 0.006, size * 1.6);
+    transform.updateMatrix();
+    petals.setMatrixAt(petalCount++, transform.matrix);
+  }
+  petals.count = petalCount;
+  petals.instanceMatrix.needsUpdate = true;
+  petals.visible = false;
+  group.add(petals);
   const outlinePoints = Array.from({ length: 7 }, (_, i) => {
     const angle = Math.PI / 2 + i * Math.PI / 3;
     return new THREE.Vector3(Math.cos(angle) * 2.66, groundY + 0.018, Math.sin(angle) * 2.66);
@@ -110,12 +134,14 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
     const conifer = biome === 'conifer';
     const savanna = biome === 'savanna';
     const desert = biome === 'desert';
+    const blossom = biome === 'blossom';
+    petals.visible = blossom;
     grasses.visible = !desert;
     ripples.visible = desert;
-    stones.color.set(desert ? '#ba8768' : '#b1b4b2');
-    earth.color.set(desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
-    turf.color.set(desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
-    grass.color.set(savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
+    stones.color.set(blossom ? '#777e80' : desert ? '#ba8768' : '#b1b4b2');
+    earth.color.set(blossom ? '#897978' : desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
+    turf.color.set(blossom ? '#98ad9e' : desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
+    grass.color.set(blossom ? '#668b77' : savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
     earth.color.offsetHSL(hueShift, 0, lightnessShift * 0.6);
     turf.color.offsetHSL(hueShift, 0, lightnessShift);
     grass.color.offsetHSL(hueShift, 0, lightnessShift * 0.8);

@@ -54,6 +54,12 @@ After unlocking the fourth plot, **palm** seeds become available on any empty pl
 
 Desert plants replace the existing categories: flowering succulents cost **1 stone**, round ribbed cacti **2 stone**, and agaves **3 stone**. Expansion still requires a mature tree, 3 agaves, 6 cacti, 8 succulents and 150 stone on the latest plot. Plant removal works as before, without refunds. Shop and requirement labels follow the corresponding plot's biome in both languages.
 
+## Blossom grove biome
+
+Unlocking the fifth plot makes free **sakura** seeds available on any empty plot except the first. Its dark curved trunk supports spreading branches and patches of pink to nearly white blossom. Its seeded shape and 26-second growth survive reloads.
+
+The grove has cool grey-green soil, dark pebbles, grass and static fallen petals. Flowers are white or lilac, mushrooms have pink-brown caps, and bushes become flowering **azaleas**. Prices remain 1, 2 and 3 stone respectively. Expansion requires a grown tree, 3 azaleas, 6 mushrooms, 8 flowers and 150 stone on the latest plot. Selecting seeds previews the biome, canceling restores it, and planting saves it. Bloom is permanent; seasons and falling-petal animation are not implemented.
+
 ## Checks
 
 Test prices, the 24 places, and saved state with Node.js 22+:
