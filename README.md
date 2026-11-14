@@ -60,6 +60,12 @@ Unlocking the fifth plot makes free **sakura** seeds available on any empty plot
 
 The grove has cool grey-green soil, dark pebbles, grass and static fallen petals. Flowers are white or lilac, mushrooms have pink-brown caps, and bushes become flowering **azaleas**. Prices remain 1, 2 and 3 stone respectively. Expansion requires a grown tree, 3 azaleas, 6 mushrooms, 8 flowers and 150 stone on the latest plot. Selecting seeds previews the biome, canceling restores it, and planting saves it. Bloom is permanent; seasons and falling-petal animation are not implemented.
 
+## Dark oak forest biome
+
+Unlocking the sixth plot makes free **dark oak** seeds available on any empty plot except the first. Its thick dark trunk, flared roots, spreading limbs and dense green crown grow over 26 seconds, with a seeded shape and progress preserved on reload.
+
+The forest has dark soil, moss and static fallen leaves. Small plants become white-belled **lilies of the valley** (1 stone), golden rippled **chanterelles** (2 stone), and **blueberry bushes** with blue-purple berries (3 stone). Expansion requires a mature oak, 3 blueberry bushes, 6 chanterelles, 8 lilies and 150 stone on the latest plot. Selecting seeds previews the biome, canceling restores it, and planting saves it. Berries are decorative, not harvestable.
+
 ## Checks
 
 Test prices, the 24 places, and saved state with Node.js 22+:

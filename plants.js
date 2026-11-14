@@ -22,6 +22,9 @@ const groveGreens = ['#587e68', '#72947a', '#8ca58b'].map(material);
 const groveFlowers = ['#f6f0ed', '#d4c1e5', '#b7a4ce'].map(material);
 const groveCaps = ['#b18a88', '#c3a29a', '#d5bca9'].map(material);
 const azaleaBlooms = ['#edafc4', '#d987aa', '#fff0ed'].map(material);
+const forestGreens = ['#35583d', '#486b46', '#5c7b4e'].map(material);
+const berries = ['#42466e', '#555381', '#666192'].map(material);
+const chanterelles = ['#d99535', '#edb34e', '#e5a13d'].map(material);
 const cream = material('#eee2c3');
 const center = material('#d5ab59');
 const barkMaterial = material('#786049');
@@ -32,12 +35,28 @@ const cap = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
 const cone = new THREE.ConeGeometry(1, 1, 7);
 const morel = new THREE.SphereGeometry(1, 10, 8);
 const ridge = new THREE.TorusGeometry(1, 0.13, 4, 10);
+// Shared open-ended bells and rippled funnels remain compatible with plant batching.
+const bell = new THREE.CylinderGeometry(0.45, 1, 1, 8, 1, true);
+const funnel = new THREE.LatheGeometry([
+  new THREE.Vector2(0.12, -0.35), new THREE.Vector2(0.4, -0.1),
+  new THREE.Vector2(0.8, 0.12), new THREE.Vector2(1, 0.3),
+  new THREE.Vector2(0.96, 0.37), new THREE.Vector2(0.73, 0.2),
+  new THREE.Vector2(0.28, -0.04),
+], 16);
+const funnelPositions = funnel.attributes.position;
+for (let i = 0; i < funnelPositions.count; i++) {
+  const angle = Math.atan2(funnelPositions.getZ(i), funnelPositions.getX(i));
+  const radius = Math.hypot(funnelPositions.getX(i), funnelPositions.getZ(i));
+  funnelPositions.setY(i, funnelPositions.getY(i) + Math.sin(angle * 5) * 0.075 * radius);
+}
+funnel.computeVertexNormals();
 
 export function makePlant(type, seed, biome = 'meadow') {
   const conifer = biome === 'conifer';
   const savanna = biome === 'savanna';
   const blossom = biome === 'blossom';
-  const greenPalette = blossom ? groveGreens : savanna ? dryGreens : conifer ? coniferGreens : greens;
+  const forest = biome === 'darkForest';
+  const greenPalette = forest ? forestGreens : blossom ? groveGreens : savanna ? dryGreens : conifer ? coniferGreens : greens;
   const flowerPalette = blossom ? groveFlowers : savanna ? orangeFlowers : conifer ? whiteFlowers : flowers;
   const capPalette = blossom ? groveCaps : conifer ? brownCaps : caps;
   const random = createRandom(seed);
@@ -52,6 +71,62 @@ export function makePlant(type, seed, biome = 'meadow') {
     return mesh;
   }
   const green = greenPalette[Math.floor(random() * greenPalette.length)];
+  if (forest) {
+    if (type === 'flower') {
+      const height = 0.28 + random() * 0.09;
+      for (const side of [-1, 1]) {
+        const blade = add(leaf, green, side * 0.065, height * 0.35, 0, 0.065, height * 0.65, 0.035);
+        blade.rotation.z = -side * 0.4;
+      }
+      let previous = new THREE.Vector3();
+      for (let i = 1; i <= 7; i++) {
+        const t = i / 7;
+        const point = new THREE.Vector3(0.11 * t * t, height * (t - 0.15 * t ** 4), 0);
+        const delta = point.clone().sub(previous);
+        const stalk = add(stem, green, (point.x + previous.x) / 2, (point.y + previous.y) / 2, 0, 0.4, delta.length(), 0.4);
+        stalk.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+        if (i >= 3) {
+          const x = point.x + 0.025;
+          const y = point.y - 0.025;
+          add(stem, green, x - 0.012, y + 0.014, 0, 0.3, 0.04, 0.3).rotation.z = -0.7;
+          add(bell, whiteFlowers[i % whiteFlowers.length], x, y - 0.012, 0, 0.028, 0.036, 0.028);
+          for (let lobe = 0; lobe < 5; lobe++) {
+            const a = lobe * Math.PI * 2 / 5;
+            add(sphere, whiteFlowers[i % whiteFlowers.length], x + Math.cos(a) * 0.023, y - 0.03, Math.sin(a) * 0.023, 0.01, 0.008, 0.01);
+          }
+        }
+        previous = point;
+      }
+    } else if (type === 'mushroom') {
+      const count = 3 + Math.floor(random() * 2);
+      const surface = chanterelles[Math.floor(random() * chanterelles.length)];
+      for (let i = 0; i < count; i++) {
+        const angle = i * Math.PI * 2 / count + random() * 0.3;
+        const x = Math.cos(angle) * 0.075;
+        const z = Math.sin(angle) * 0.075;
+        const height = 0.12 + random() * 0.12;
+        const radius = 0.075 + random() * 0.035;
+        add(stem, surface, x, height / 2, z, 1.5, height, 1.5);
+        add(funnel, surface, x, height, z, radius, radius, radius).rotation.y = random() * Math.PI;
+      }
+    } else if (type === 'bush') {
+      for (let i = 0; i < 7; i++) {
+        const angle = i * Math.PI * 2 / 7;
+        const x = Math.cos(angle) * 0.1;
+        const z = Math.sin(angle) * 0.1;
+        const y = 0.13 + random() * 0.1;
+        const size = 0.1 + random() * 0.035;
+        add(stem, barkMaterial, x, y / 2, z, 0.55, y, 0.55);
+        add(leaf, forestGreens[i % forestGreens.length], x, y, z, size, size * 0.85, size);
+        for (let j = 0; j < 3; j++) {
+          const a = angle + (j - 1) * 0.65;
+          add(sphere, berries[(i + j) % berries.length], x + Math.cos(a) * size * 0.8,
+            y + size * 0.35 + random() * 0.035, z + Math.sin(a) * size * 0.8, 0.025, 0.023, 0.025);
+        }
+      }
+    }
+    return group;
+  }
   if (biome === 'desert') {
     const surface = desertGreens[Math.floor(random() * desertGreens.length)];
     if (type === 'mushroom') {

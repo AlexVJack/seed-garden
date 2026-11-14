@@ -266,7 +266,8 @@ function updateUI() {
     placement: shearsActive ? 'shearsHint' : isTree(selectedType) ? 'treeHint' : 'placePlant' });
   const progress = resources.expansionProgress();
   const desertLabels = { flower: 'succulent', mushroom: 'cactus', bush: 'agave' };
-  const plantLabel = (type, biome) => biome === 'desert' ? desertLabels[type] : biome === 'blossom' && type === 'bush' ? 'azalea' : type;
+  const forestLabels = { flower: 'lilyOfTheValley', mushroom: 'chanterelle', bush: 'blueberry' };
+  const plantLabel = (type, biome) => biome === 'darkForest' ? forestLabels[type] : biome === 'desert' ? desertLabels[type] : biome === 'blossom' && type === 'bush' ? 'azalea' : type;
   for (const type of Object.keys(plantCosts)) {
     const label = $(`[data-plant-type="${type}"] [data-i18n]`);
     label.dataset.i18n = plantLabel(type, view.biome);

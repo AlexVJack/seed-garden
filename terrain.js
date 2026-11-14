@@ -13,6 +13,8 @@ const rockMaterial = material('#b1b4b2');
 const rippleGeometry = new THREE.TorusGeometry(0.15, 0.008, 3, 12, Math.PI * 0.85);
 const petalGeometry = new THREE.SphereGeometry(1, 5, 3);
 const petalMaterial = material('#efd0dc');
+const litterMaterial = material('#8c7148');
+const mossMaterial = material('#536b41');
 
 export function makeTerrain({ q = 0, r = 0 } = {}) {
   const group = new THREE.Group();
@@ -123,6 +125,27 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   petals.instanceMatrix.needsUpdate = true;
   petals.visible = false;
   group.add(petals);
+  const litter = new THREE.InstancedMesh(petalGeometry, litterMaterial, petalCount);
+  const moss = new THREE.InstancedMesh(rockGeometry, mossMaterial, rocks.count);
+  for (let i = 0; i < petalCount; i++) {
+    petals.getMatrixAt(i, transform.matrix);
+    transform.matrix.decompose(transform.position, transform.quaternion, transform.scale);
+    transform.scale.multiply(new THREE.Vector3(1.7, 1, 1.4));
+    transform.updateMatrix();
+    litter.setMatrixAt(i, transform.matrix);
+  }
+  for (let i = 0; i < rocks.count; i++) {
+    rocks.getMatrixAt(i, transform.matrix);
+    transform.matrix.decompose(transform.position, transform.quaternion, transform.scale);
+    transform.position.y = groundY + 0.009;
+    transform.scale.multiply(new THREE.Vector3(1.7, 0.18, 1.7));
+    transform.updateMatrix();
+    moss.setMatrixAt(i, transform.matrix);
+  }
+  litter.instanceMatrix.needsUpdate = moss.instanceMatrix.needsUpdate = true;
+  litter.visible = moss.visible = false;
+  litter.receiveShadow = moss.receiveShadow = true;
+  group.add(litter, moss);
   const outlinePoints = Array.from({ length: 7 }, (_, i) => {
     const angle = Math.PI / 2 + i * Math.PI / 3;
     return new THREE.Vector3(Math.cos(angle) * 2.66, groundY + 0.018, Math.sin(angle) * 2.66);
@@ -135,13 +158,15 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
     const savanna = biome === 'savanna';
     const desert = biome === 'desert';
     const blossom = biome === 'blossom';
+    const forest = biome === 'darkForest';
+    litter.visible = moss.visible = forest;
     petals.visible = blossom;
     grasses.visible = !desert;
     ripples.visible = desert;
-    stones.color.set(blossom ? '#777e80' : desert ? '#ba8768' : '#b1b4b2');
-    earth.color.set(blossom ? '#897978' : desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
-    turf.color.set(blossom ? '#98ad9e' : desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
-    grass.color.set(blossom ? '#668b77' : savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
+    stones.color.set(forest ? '#777970' : blossom ? '#777e80' : desert ? '#ba8768' : '#b1b4b2');
+    earth.color.set(forest ? '#594938' : blossom ? '#897978' : desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
+    turf.color.set(forest ? '#626648' : blossom ? '#98ad9e' : desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
+    grass.color.set(forest ? '#49613b' : blossom ? '#668b77' : savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
     earth.color.offsetHSL(hueShift, 0, lightnessShift * 0.6);
     turf.color.offsetHSL(hueShift, 0, lightnessShift);
     grass.color.offsetHSL(hueShift, 0, lightnessShift * 0.8);
