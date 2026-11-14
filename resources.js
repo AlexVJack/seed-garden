@@ -1,4 +1,5 @@
 import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree, treeBiomes, moveTargets, connectedHexKeys } from './garden-layout.js';
+import { gardenerCost } from './gardener-logic.js';
 
 const storageKey = 'seed-garden-resources';
 export const stoneLimit = 10000;
@@ -13,6 +14,7 @@ const validPosition = (position) => position && Number.isInteger(position.q) && 
 
 export function createResources(storage) {
   let stone = 0;
+  let fruit = 0;
   let parcels = [emptyParcel()];
   function readPlants(savedPlants) {
     const occupied = new Set();
@@ -29,12 +31,14 @@ export function createResources(storage) {
     // Older saves inferred the species from plot order; newer saves remember the player's choice.
     const type = canPlantTree(record.treeType, id, plotCount) ? record.treeType : treeKind(id);
     return { q: record.q, r: record.r, plants: readPlants(record.plants), tree,
+      ...(record.gardener === true ? { gardener: true } : {}),
       ...(tree ? { treeType: type } : {}),
       biome: tree || record.biome === treeBiomes[type] ? treeBiomes[type] : 'meadow' };
   }
   try {
     const saved = JSON.parse(storage.getItem(storageKey));
     if (Number.isSafeInteger(saved?.stone) && saved.stone >= 0) stone = Math.min(saved.stone, stoneLimit);
+    if (Number.isSafeInteger(saved?.fruit) && saved.fruit >= 0) fruit = saved.fruit;
     if (Array.isArray(saved?.parcels)) {
       const restored = [];
       const records = saved.parcels.slice(0, parcelLimit);
@@ -57,11 +61,13 @@ export function createResources(storage) {
         parcels.push(readParcel({ ...saved.second, ...hexDirections[direction] }, 1));
       }
     }
+    // The original single gardener always belonged to the first plot.
+    if (saved?.gardener === true) parcels[0].gardener = true;
   } catch { /* Storage may be unavailable or contain invalid data. */ }
 
   function save() {
     // Spending and all parcels are written as one snapshot.
-    try { storage.setItem(storageKey, JSON.stringify({ version: 3, stone, parcels })); } catch { /* Keep the garden for this visit. */ }
+    try { storage.setItem(storageKey, JSON.stringify({ version: 3, stone, fruit, parcels })); } catch { /* Keep the garden for this visit. */ }
   }
   const parcelAt = (id) => Number.isInteger(id) && id >= 0 ? parcels[id] : null;
   function expansionProgress(now = Date.now()) {
@@ -79,6 +85,33 @@ export function createResources(storage) {
 
   return {
     get stone() { return stone; },
+    get fruit() { return fruit; },
+    hasGardener(id = 0) { return parcelAt(id)?.gardener === true; },
+    buyGardener(id = 0) {
+      const parcel = parcelAt(id);
+      if (!parcel || parcel.gardener || stone < gardenerCost) return false;
+      stone -= gardenerCost;
+      parcel.gardener = true;
+      save();
+      return true;
+    },
+    transferGardener(fromId, toId) {
+      const from = parcelAt(fromId);
+      const to = parcelAt(toId);
+      if (!from?.gardener || !to || to.gardener || fromId === toId) return false;
+      delete from.gardener;
+      to.gardener = true;
+      save();
+      return true;
+    },
+    collectFruit(id = 0) {
+      const parcel = parcelAt(id);
+      const tree = parcel?.tree;
+      if (!parcel?.gardener || !tree || Date.now() - tree.startedAt < growthDuration || fruit >= Number.MAX_SAFE_INTEGER) return false;
+      fruit += 1;
+      save();
+      return true;
+    },
     get plants() { return parcels[0].plants.map((plant) => ({ ...plant })); },
     get tree() { return copyTree(parcels[0].tree); },
     get parcels() { return parcels.map(copyParcel); },
@@ -96,6 +129,7 @@ export function createResources(storage) {
     },
     newGame() {
       stone = 0;
+      fruit = 0;
       parcels = [emptyParcel()];
       save();
     },

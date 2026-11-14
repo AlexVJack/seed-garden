@@ -36,6 +36,14 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - The tree's seed, position and planting time, other plants, and stone are saved locally in your browser. Tree growth accounts for time spent away from the page.
 - Planted trees cannot be removed or replaced. Clearing site data removes the saved garden. If browser storage is unavailable, the garden only lasts until reload.
 
+## Gardeners and fruit
+
+- Select any unlocked plot and hire its gardener in the shop for **100 stone**, at most one per plot. You do not need to hire on plot 1 first.
+- On an unstaffed plot, the shop also offers a free transfer: choose a source plot and confirm. The source loses its gardener; no stone or fruit changes hands, and the unfinished gathering cycle resets.
+- Once its own tree is mature, each gardener walks, bends and picks up **one fruit every three seconds**. All hired gardeners work while the game tab is visible, regardless of the plot you are viewing. There is no background or offline gathering.
+- Fruit appearance follows the biome: apple, cone, oval baobab fruit, coconut, cherries, acorn or maple samara. All contribute to the single fruit-and-nuts counter above stone.
+- Hiring, assignments and fruit persist. The original single gardener migrates to plot 1. Moving a plot with the shovel keeps its gardener and rebuilds the route; a new game clears all gardeners and fruit.
+
 ## Expanding the garden: up to 36 plots
 
 - Each expansion requires **150 stone, a grown tree, 3 bushes, 6 mushrooms, and 8 flowers** on the **most recently unlocked plot**, all at once. The shop's “Next hexagon” section identifies that plot and shows progress. Existing plants are not consumed.

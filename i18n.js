@@ -24,9 +24,20 @@ const messages = {
     rotate: 'Drag the scene to rotate',
     language: 'Language',
     newGame: 'New game',
-    confirmNewGame: 'Start a new game? Your entire garden, all plots, plants and stone will be lost. This cannot be undone.',
+    confirmNewGame: 'Start a new game? Your entire garden, all plots, plants, stone, fruit and nuts will be lost. This cannot be undone.',
     resources: 'Resources',
     stone: 'Stone',
+    fruit: 'Fruit and nuts',
+    gardener: 'Gardener',
+    buyGardener: 'Hire a gardener',
+    gardenerDescription: 'Hire for this plot. Collects one fruit every 3 seconds while the game is visible, once its tree is grown. One gardener per plot.',
+    gardenerOwned: 'Hired for this plot. Works even when you view another plot; waits for a grown tree. No gathering in a hidden tab.',
+    gardenerPurchased: 'Gardener hired for this plot. He starts gathering once its tree is grown.',
+    gardenerWorking: 'Gardener assigned here',
+    transferGardener: 'Transfer a gardener here for free',
+    gardenerSource: 'From plot',
+    confirmGardenerTransfer: 'Transfer here',
+    gardenerTransferred: 'Gardener transferred here for free. The previous plot no longer has a gardener.',
     mineStone: 'Mine stone (+1)',
     plantShop: 'Plant something',
     openShop: 'Open shop',
@@ -117,9 +128,20 @@ const messages = {
     rotate: 'Потягни сцену, щоб обертати',
     language: 'Мова',
     newGame: 'Нова гра',
-    confirmNewGame: 'Почати нову гру? Увесь сад, усі ділянки, рослини та каміння буде втрачено. Цю дію не можна скасувати.',
+    confirmNewGame: 'Почати нову гру? Увесь сад, усі ділянки, рослини, каміння, плоди та горіхи буде втрачено. Цю дію не можна скасувати.',
     resources: 'Ресурси',
     stone: 'Камінь',
+    fruit: 'Плоди та горіхи',
+    gardener: 'Садівник',
+    buyGardener: 'Найняти садівника',
+    gardenerDescription: 'Найми на цю ділянку. Збирає один плід кожні 3 секунди, поки гру видно, після виростання її дерева. Один садівник на ділянку.',
+    gardenerOwned: 'Найнятий на цю ділянку. Працює, навіть коли оглядаєш іншу; чекає на виросле дерево. У прихованій вкладці не збирає.',
+    gardenerPurchased: 'Садівника найнято на цю ділянку. Почне збір, коли її дерево виросте.',
+    gardenerWorking: 'Садівник працює тут',
+    transferGardener: 'Безкоштовно перевести садівника сюди',
+    gardenerSource: 'З ділянки',
+    confirmGardenerTransfer: 'Перевести сюди',
+    gardenerTransferred: 'Садівника безкоштовно переведено сюди. На попередній ділянці садівника більше немає.',
     mineStone: 'Добути камінь (+1)',
     plantShop: 'Що посадимо?',
     openShop: 'Відкрити магазин',
@@ -246,6 +268,11 @@ function renderLanguage() {
   });
   const source = document.querySelector('#expansion-source');
   source.textContent = `${translate('parcel')} ${Number(source.dataset.sourceParcel) + 1}`;
+  const gardenerParcel = document.querySelector('#gardener-parcel');
+  gardenerParcel.textContent = `${translate('parcel')} ${Number(gardenerParcel.dataset.gardenerParcel) + 1}`;
+  document.querySelectorAll('#gardener-source option').forEach((option) => {
+    option.textContent = `${translate('parcel')} ${Number(option.value) + 1}`;
+  });
   renderState();
 }
 

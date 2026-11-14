@@ -6,6 +6,9 @@ import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, 
 import { makePlantBatch, plantSlotAtHit } from './plant-batches.js';
 import { makeTree } from './trees.js';
 import { makeTerrain, groundY } from './terrain.js';
+import { makeGardener } from './gardener.js';
+import { gardenerCost } from './gardener-logic.js';
+import { quarryLayout } from './terrain-layout.js';
 
 const $ = (selector) => document.querySelector(selector);
 let storage;
@@ -113,6 +116,38 @@ function createParcel(id) {
   return view;
 }
 resources.parcels.forEach((_, id) => createParcel(id));
+const gardenerViews = new Map();
+function syncGardeners() {
+  for (const view of views) {
+    const record = resources.parcel(view.id);
+    const signature = `${record.q},${record.r},${record.biome}`;
+    const previous = gardenerViews.get(view.id);
+    if (previous && (!record.gardener || previous.signature !== signature)) {
+      view.root.remove(previous.group);
+      previous.dispose();
+      gardenerViews.delete(view.id);
+    }
+    if (!record.gardener || gardenerViews.has(view.id)) continue;
+    const gardener = makeGardener(quarryLayout(record), groundY, () => {
+      if (resources.collectFruit(view.id)) updateUI();
+    }, record.biome);
+    gardener.signature = signature;
+    gardenerViews.set(view.id, gardener);
+    view.root.add(gardener.group);
+  }
+}
+syncGardeners();
+$('#buy-gardener').addEventListener('click', () => {
+  if (!resources.buyGardener(activeParcel)) return;
+  updateUI();
+  announce('gardenerPurchased');
+});
+$('#transfer-gardener').addEventListener('click', () => {
+  const source = $('#gardener-source').value;
+  if (source === '' || !resources.transferGardener(Number(source), activeParcel)) return;
+  updateUI();
+  announce('gardenerTransferred');
+});
 
 const slotMarkers = new THREE.Group();
 const slotGeometry = new THREE.RingGeometry(0.12, 0.17, 20);
@@ -219,6 +254,34 @@ function updateUI() {
   if (selectedType && !isTree(selectedType) && (full || resources.stone < plantCosts[selectedType])) selectedType = null;
   $('#stone-count').textContent = resources.stone;
   $('#stone-count').dataset.digits = String(resources.stone).length;
+  $('#fruit-count').textContent = resources.fruit;
+  $('#fruit-count').dataset.digits = String(resources.fruit).length;
+  syncGardeners();
+  const hasGardener = resources.hasGardener(activeParcel);
+  $('#buy-gardener').disabled = hasGardener || resources.stone < gardenerCost;
+  const gardenerLabel = $('#buy-gardener [data-i18n]');
+  gardenerLabel.dataset.i18n = hasGardener ? 'gardenerWorking' : 'buyGardener';
+  gardenerLabel.textContent = translate(gardenerLabel.dataset.i18n);
+  $('#gardener-price').hidden = hasGardener;
+  $('#gardener-parcel').dataset.gardenerParcel = activeParcel;
+  $('#gardener-parcel').textContent = `${translate('parcel')} ${activeParcel + 1}`;
+  $('#gardener-status').dataset.i18n = hasGardener ? 'gardenerOwned' : 'gardenerDescription';
+  $('#gardener-status').textContent = translate($('#gardener-status').dataset.i18n);
+  const sources = views.filter(({ id }) => id !== activeParcel && resources.hasGardener(id));
+  $('#gardener-transfer').hidden = hasGardener || sources.length === 0;
+  const sourceSelect = $('#gardener-source');
+  const sourceIds = sources.map(({ id }) => String(id)).join(',');
+  if (sourceSelect.dataset.sources !== sourceIds) {
+    const previous = sourceSelect.value;
+    sourceSelect.replaceChildren(...sources.map(({ id }) => {
+      const option = document.createElement('option');
+      option.value = id;
+      return option;
+    }));
+    if (sources.some(({ id }) => String(id) === previous)) sourceSelect.value = previous;
+    sourceSelect.dataset.sources = sourceIds;
+  }
+  for (const option of sourceSelect.options) option.textContent = `${translate('parcel')} ${Number(option.value) + 1}`;
   $('#slots-used').textContent = `${occupied.size} / ${plantingSlots.length}`;
   document.querySelectorAll('[data-plant-type]').forEach((button) => {
     const type = button.dataset.plantType;
@@ -590,7 +653,15 @@ if (['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
     // The local tools file is intentionally absent from the repository.
   });
 }
+let lastFrame;
+document.addEventListener('visibilitychange', () => { lastFrame = undefined; });
 renderer.setAnimationLoop((now) => {
+  const delta = lastFrame === undefined ? 0 : now - lastFrame;
+  lastFrame = now;
+  for (const [id, gardener] of gardenerViews) {
+    const tree = views[id].treeRecord;
+    gardener.update(delta, !document.hidden && Boolean(tree && Date.now() - tree.startedAt >= growthDuration));
+  }
   controls.update();
   let completed = false;
   for (const view of views) {

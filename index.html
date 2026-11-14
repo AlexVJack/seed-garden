@@ -5,24 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
     <title>Seed — a little garden</title>
-    <link rel="stylesheet" href="./style.css?v=shovel-1" />
+    <link rel="stylesheet" href="./style.css?v=gardeners-2" />
     <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
           "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-          "./main.js": "./main.js?v=shovel-1",
+          "./main.js": "./main.js?v=gardeners-2",
           "./plant-batches.js": "./plant-batches.js?v=plant-batches-1",
-          "./i18n.js": "./i18n.js?v=shovel-1",
+          "./i18n.js": "./i18n.js?v=gardeners-2",
           "./garden-layout.js": "./garden-layout.js?v=shovel-1",
-          "./resources.js": "./resources.js?v=shovel-1",
+          "./resources.js": "./resources.js?v=gardeners-2",
           "./trees.js": "./trees.js?v=maple-1",
           "./plants.js": "./plants.js?v=maple-1",
           "./terrain.js": "./terrain.js?v=shovel-1",
           "./maple-leaf.js": "./maple-leaf.js?v=maple-1",
           "./terrain-layout.js": "./terrain-layout.js?v=quarry-1",
           "./random.js": "./random.js?v=quarry-1",
-          "./dev-tools.js": "./dev-tools.js?v=quarry-1"
+          "./dev-tools.js": "./dev-tools.js?v=quarry-1",
+          "./gardener.js": "./gardener.js?v=gardeners-2",
+          "./gardener-logic.js": "./gardener-logic.js?v=gardener-1"
         }
       }
     </script>
@@ -39,8 +41,12 @@
       </nav>
       <section class="resources" data-i18n-aria="resources" aria-label="Resources">
         <div class="resource-total">
+          <svg class="fruit-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 14c-6-5-15-1-15 8 0 8 6 14 11 14l4-1 4 1c5 0 11-6 11-14 0-9-9-13-15-8Z" fill="#c99650"/><path d="M20 14C14 9 5 13 5 22c0 6 4 12 8 13-3-8-2-16 7-21Z" fill="#deb574"/><path d="M20 14c0-5 1-8 3-11" fill="none" stroke="#8a7050" stroke-width="3" stroke-linecap="round"/><path d="M22 10c1-7 7-8 12-7-1 6-5 9-12 7Z" fill="#81976b"/></svg>
+          <output id="fruit-count" class="resource-count" data-i18n-aria="fruit" aria-label="Fruit and nuts" aria-live="polite" aria-atomic="true">0</output>
+        </div>
+        <div class="resource-total">
           <svg class="stone-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="m9 8 17-4 10 16-7 15H11L3 23Z" fill="#969ca1"/><path d="m9 8 13 11 4-15Z" fill="#b0b5b8"/><path d="m22 19 14 1-7 15-10-5Z" fill="#747b81"/><path d="M3 23 9 8l13 11-3 11-8 5Z" fill="#858c92"/></svg>
-          <output id="stone-count" data-i18n-aria="stone" aria-label="Stone" aria-live="polite" aria-atomic="true">0</output>
+          <output id="stone-count" class="resource-count" data-i18n-aria="stone" aria-label="Stone" aria-live="polite" aria-atomic="true">0</output>
         </div>
         <button id="mine-stone" class="sr-only" data-i18n="mineStone">Mine stone (+1)</button>
       </section>
@@ -83,6 +89,16 @@
           <button type="button" data-plant-type="mushroom" aria-pressed="false" disabled><span aria-hidden="true">🍄</span><span data-i18n="mushroom">Mushroom</span><small>2 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="bush" aria-pressed="false" disabled><span aria-hidden="true">🌿</span><span data-i18n="bush">Bush</span><small>3 <span data-i18n="stone">Stone</span></small></button>
         </div>
+        <div class="shop-section-title"><span data-i18n="gardener">Gardener</span> · <span id="gardener-parcel" data-gardener-parcel="0">Plot 1</span></div>
+        <div class="plant-options">
+          <button id="buy-gardener" type="button" disabled><span aria-hidden="true">🧑‍🌾</span><span data-i18n="buyGardener">Hire a gardener</span><small id="gardener-price">100 <span data-i18n="stone">Stone</span></small></button>
+        </div>
+        <p id="gardener-status" class="gardener-status" data-i18n="gardenerDescription">Hire for this plot. Collects one fruit every 3 seconds while the game is visible, once its tree is grown.</p>
+        <details id="gardener-transfer" class="gardener-transfer" hidden>
+          <summary data-i18n="transferGardener">Transfer a gardener here for free</summary>
+          <label><span data-i18n="gardenerSource">From plot</span> <select id="gardener-source"></select></label>
+          <button id="transfer-gardener" type="button" data-i18n="confirmGardenerTransfer">Transfer here</button>
+        </details>
         <div class="shop-status"><p id="planting-status" role="status"></p></div>
         <details id="expansion-progress" class="expansion-progress">
           <summary><span data-i18n="nextParcel">Next hexagon</span> · <output id="parcel-count">1 / 36</output></summary>
@@ -122,6 +138,8 @@
         document.querySelector('#shop-toggle').disabled = true;
          document.querySelector('#shears-toggle').disabled = true;
          document.querySelector('#shovel-toggle').disabled = true;
+        document.querySelector('#buy-gardener').disabled = true;
+        document.querySelector('#transfer-gardener').disabled = true;
         document.querySelectorAll('[data-plant-type], [data-tree-type], [data-slot], [data-neighbor], [data-parcel]').forEach((button) => { button.disabled = true; });
       });
     </script>

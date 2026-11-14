@@ -14,13 +14,13 @@ button:disabled { cursor: default; opacity: .5; }
 .language-switch { position: absolute; top: 32px; right: calc(8% + 64px); z-index: 5; display: flex; align-items: center; gap: 4px; color: #929789; font-size: 11px; }
 .language-switch button { border: 0; background: transparent; padding: 10px 8px; border-radius: 8px; font-size: 11px; }
 .language-switch button[aria-pressed="true"] { color: #38483c; background: #e7eddf; font-weight: 700; }
-.resources { position: absolute; top: calc(50% - 87px); left: 49px; z-index: 3; width: 50px; height: 50px; padding: 5px; border: 1px solid #dadbd5; border-radius: 15px; background: #eeefeaed; }
-.resource-total { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; height: 100%; font-size: 12px; font-weight: 700; }
-.stone-icon { display: block; width: 18px; height: 18px; flex-shrink: 0; }
-#stone-count { max-width: 100%; font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; text-align: center; }
-#stone-count[data-digits="4"] { font-size: 11px; }
-#stone-count[data-digits="5"] { font-size: 10px; }
-#mine-stone:focus-visible { position: absolute; top: 0; left: 110px; width: max-content; max-width: 160px; height: auto; margin: 0; padding: 8px; clip: auto; white-space: normal; border: 0; border-radius: 8px; background: #e7eddf; }
+.resources { position: absolute; top: calc(50% - 149px); left: 49px; z-index: 3; width: 50px; display: flex; flex-direction: column; gap: 12px; }
+.resource-total { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; min-height: 50px; padding: 5px; border: 1px solid #dadbd5; border-radius: 15px; background: #eeefeaed; font-size: 12px; font-weight: 700; }
+.stone-icon, .fruit-icon { display: block; width: 18px; height: 18px; flex-shrink: 0; }
+.resource-count { max-width: 100%; font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; text-align: center; font-size: 10px; }
+.resource-count[data-digits="1"], .resource-count[data-digits="2"], .resource-count[data-digits="3"] { font-size: 12px; }
+.resource-count[data-digits="4"] { font-size: 11px; }
+#mine-stone:focus-visible { position: absolute; top: 62px; left: 110px; width: max-content; max-width: 160px; height: auto; margin: 0; padding: 8px; clip: auto; white-space: normal; border: 0; border-radius: 8px; background: #e7eddf; }
 h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: clamp(38px, 4.6vw, 68px); line-height: 1.14; letter-spacing: -2px; margin: 25px 0 20px; }
 h1 em { color: #7b946a; font-weight: 500; }
 .heading p { font-size: 13px; line-height: 1.9; color: #879084; }
@@ -57,6 +57,11 @@ progress::-moz-progress-bar { background: #8aa675; }
 .plant-options button[aria-pressed="true"] { border-color: #739d65; background: #e7eddf; box-shadow: 0 0 0 1px #739d65; }
 .plant-options small { color: #879084; font-size: 9px; }
 .shop-section-title { margin: 10px 0 6px; color: #879084; font-size: 10px; }
+.gardener-status { margin: 8px 0; color: #7d8975; font-size: 10px; line-height: 1.6; }
+.gardener-transfer { margin: 8px 0; font-size: 10px; color: #7d8975; }
+.gardener-transfer summary { cursor: pointer; padding: 6px 0; }
+.gardener-transfer label { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.gardener-transfer select, .gardener-transfer button { min-height: 36px; max-width: 100%; padding: 6px 8px; border: 1px solid #dadbd5; border-radius: 8px; background: #e7eddf; color: inherit; font: inherit; }
 .expansion-progress { margin-top: 8px; border-top: 1px solid #e7e5da; padding-top: 10px; font-size: 10px; color: #7d8975; }
 .expansion-progress summary { cursor: pointer; min-height: 30px; }
 .expansion-progress ul { list-style: none; margin: 0; padding: 0; }
@@ -95,7 +100,7 @@ footer { position: absolute; bottom: 32px; left: 8%; right: 8%; display: flex; j
   .eyebrow { font-size: 9px; }
   #shop-toggle, #shears-toggle, #shovel-toggle { left: 39px; }
   .planting-controls.shovel-mode { bottom: 112px; max-width: calc(100% - 28px); }
-  .plant-shop { top: auto; bottom: 70px; left: 50%; transform: translateX(-50%); width: calc(100% - 28px); max-width: 370px; padding: 9px 12px; }
+  .plant-shop { top: auto; bottom: 70px; left: 50%; transform: translateX(-50%); width: calc(100% - 28px); max-width: 370px; max-height: calc(100% - 90px); padding: 9px 12px; }
   .plant-options button { padding: 7px 3px; }
   .plant-options button > span:first-child { font-size: 18px; }
   .plant-options small { width: 100%; }
