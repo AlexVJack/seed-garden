@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createResources, stoneLimit } from '../resources.js';
-import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes, terrainSeed } from '../garden-layout.js';
+import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes, terrainSeed, moveTargets, connectedHexKeys } from '../garden-layout.js';
 import { quarryLayout, quarryRadius } from '../terrain-layout.js';
 
 function storage(initial = null) {
@@ -307,7 +307,7 @@ test('legacy two-plot saves migrate in every direction with seeds, growth and bi
     assert.deepEqual(garden.plants, first.plants);
     garden.mineStone();
     assert.deepEqual(createResources(saved).parcels, garden.parcels);
-    assert.equal(JSON.parse(saved.getItem()).version, 2);
+    assert.equal(JSON.parse(saved.getItem()).version, 3);
     assert.equal(Object.hasOwn(JSON.parse(saved.getItem()), 'second'), false);
   });
 });
@@ -606,4 +606,107 @@ test('maple unlocks at seven plots and preserves autumn, growth, plants, shears 
   assert.equal(restored.plant('bush', 0, 99, 6), true);
   assert.equal(restored.expand({ q: 7, r: 0 }, matureAt), true);
   assert.equal(createResources(saved).parcel(6).biome, 'autumn');
+});
+
+test('shovel fixes the first plot and prevents removing connecting plots', () => {
+  const parcels = [{ q: 0, r: 0 }, { q: 1, r: 0 }, { q: 2, r: 0 }];
+  assert.deepEqual(moveTargets(parcels, 0), []);
+  assert.deepEqual(moveTargets(parcels, 1), []);
+  assert.ok(moveTargets(parcels, 2).length > 0);
+  for (const id of [-1, 3, 1.5, NaN, '1', null]) assert.deepEqual(moveTargets(parcels, id), []);
+  assert.deepEqual(moveTargets([{ q: 0, r: 0 }], 0), []);
+});
+
+test('move targets are unique free neighbors, excluding the old position', () => {
+  const parcels = [{ q: 0, r: 0 }, { q: 1, r: 0 }, { q: 0, r: 1 }];
+  const targets = moveTargets(parcels, 1);
+  const keys = targets.map(hexKey);
+  assert.equal(keys.length, new Set(keys).size);
+  assert.ok(targets.length > 0);
+  for (const target of targets) {
+    assert.ok(!parcels.some((parcel) => hexKey(parcel) === hexKey(target)));
+    const moved = parcels.map((parcel, id) => id === 1 ? target : parcel);
+    assert.equal(connectedHexKeys(moved).size, moved.length);
+  }
+});
+
+test('moving preserves plot identity, tree, growth, plants, biome and stone after reload', () => {
+  const tree = { ...eligibleSave().tree, startedAt: Date.now() };
+  const parcels = [
+    { q: 0, r: 0, tree: null, plants: [] },
+    { q: 1, r: 0, tree, treeType: 'pine', biome: 'conifer', plants: eligibleSave().plants },
+    { q: 0, r: 1, tree: null, plants: [] },
+  ];
+  const saved = storage(JSON.stringify({ version: 2, stone: 712, parcels }));
+  const garden = createResources(saved);
+  const before = garden.parcels;
+  // Plot 2 now depends on later-created plot 3 for its connection to the origin.
+  assert.equal(garden.moveParcel(1, { q: 0, r: 2 }), true);
+  const expected = before.map((parcel, id) => id === 1 ? { ...parcel, q: 0, r: 2 } : parcel);
+  assert.deepEqual(garden.parcels, expected);
+  assert.equal(garden.stone, 712);
+  assert.equal(JSON.parse(saved.getItem()).version, 3);
+  const restored = createResources(saved);
+  assert.deepEqual(restored.parcels, expected);
+  assert.equal(restored.stone, 712);
+  assert.deepEqual(restored.parcel(1).tree, tree);
+  assert.deepEqual(restored.moveTargets(2), []);
+});
+
+test('invalid moves leave the entire garden and stored snapshot unchanged', () => {
+  const saved = storage(JSON.stringify({ stone: 987, parcels: [
+    { q: 0, r: 0 }, { q: 1, r: 0 }, { q: 2, r: 0 },
+  ] }));
+  const garden = createResources(saved);
+  const before = garden.parcels;
+  const snapshot = saved.getItem();
+  for (const [id, target] of [
+    [0, { q: 0, r: 1 }], [1, { q: 0, r: 1 }], [2, { q: 2, r: 0 }],
+    [2, { q: 0, r: 0 }], [2, { q: 12, r: 12 }], [2, null],
+    [2, { q: 0.5, r: 0 }], [2, { q: '0', r: 1 }], [2, { q: NaN, r: 0 }],
+    [-1, { q: 0, r: 1 }], [3, { q: 0, r: 1 }],
+  ]) assert.equal(garden.moveParcel(id, target), false);
+  assert.deepEqual(garden.parcels, before);
+  assert.equal(garden.stone, 987);
+  assert.equal(saved.getItem(), snapshot);
+});
+
+test('moving the latest plot does not change expansion requirements or source', () => {
+  const saved = storage(JSON.stringify({ stone: 1000, parcels: [
+    { q: 0, r: 0 }, { q: 1, r: 0, ...eligibleSave(), treeType: 'pine' },
+  ] }));
+  const garden = createResources(saved);
+  const progress = garden.expansionProgress();
+  assert.equal(garden.canExpand(), true);
+  assert.equal(garden.moveParcel(1, { q: 0, r: -1 }), true);
+  assert.deepEqual(garden.expansionProgress(), progress);
+  assert.equal(garden.expand({ q: 0, r: -2 }), true);
+  assert.equal(garden.stone, 850);
+  assert.deepEqual(createResources(saved).parcels, garden.parcels);
+});
+
+test('shovel works at the plot cap and repeated moves preserve every numbered plot', () => {
+  const parcels = Array.from({ length: parcelLimit }, (_, q) => ({ q, r: 0 }));
+  const saved = storage(JSON.stringify({ parcels }));
+  let garden = createResources(saved);
+  assert.deepEqual(garden.expansionTargets(), []);
+  for (let i = 0; i < 12; i++) {
+    const target = garden.moveTargets(parcelLimit - 1)[i % garden.moveTargets(parcelLimit - 1).length];
+    assert.ok(target);
+    assert.equal(garden.moveParcel(parcelLimit - 1, target), true);
+    const before = garden.parcels;
+    garden = createResources(saved);
+    assert.equal(garden.parcels.length, parcelLimit);
+    assert.deepEqual(garden.parcels, before);
+  }
+});
+
+test('version 3 restores only the connected origin component and rejects malformed and duplicate positions', () => {
+  const saved = storage(JSON.stringify({ version: 3, stone: 42, parcels: [
+    { q: 0, r: 0 }, { q: 0, r: 2 }, { q: 0, r: 1 },
+    { q: 0, r: 1 }, { q: 10, r: 10 }, null, { q: 0.5, r: 0 },
+  ] }));
+  const garden = createResources(saved);
+  assert.deepEqual(garden.parcels.map(({ q, r }) => ({ q, r })), [{ q: 0, r: 0 }, { q: 0, r: 2 }, { q: 0, r: 1 }]);
+  assert.equal(garden.stone, 42);
 });

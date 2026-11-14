@@ -66,6 +66,14 @@ Unlocking the sixth plot makes free **dark oak** seeds available on any empty pl
 
 The forest has dark soil, moss and static fallen leaves. Small plants become white-belled **lilies of the valley** (1 stone), golden rippled **chanterelles** (2 stone), and **blueberry bushes** with blue-purple berries (3 stone). Expansion requires a mature oak, 3 blueberry bushes, 6 chanterelles, 8 lilies and 150 stone on the latest plot. Selecting seeds previews the biome, canceling restores it, and planting saves it. Berries are decorative, not harvestable.
 
+## Moving plots
+
+The **shovel** below the shears unlocks with the second plot. Activate it, choose a plot in the scene or bottom navigation, then choose a glowing free neighboring hexagon. Keyboard alternatives for plot and destination selection are available in the tool panel.
+
+Moving is free and preserves the plot number, biome, tree, plants, seeds and growth start time. Mining rock and decoration are regenerated from the new coordinates. The first plot stays fixed, and connecting plots whose removal would split the remaining garden cannot be moved. Moving also works at the 36-plot cap; expansion requirements still use the latest unlocked plot.
+
+Press the shovel again, Cancel or Escape to leave without changes. Opening the shop or choosing shears also cancels the tool. Orbiting and zooming do not move plots. Moved layouts persist across reloads, including layouts whose spatial adjacency differs from plot creation order.
+
 ## Autumn maple grove biome
 
 Unlocking the seventh plot makes free **maple** seeds available on any empty plot except the first. A slender grey-brown trunk and upward forks support a tall rounded golden-orange and red crown. Lobed maple leaves appear along the crown edges and on the ground.

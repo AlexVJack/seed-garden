@@ -1,4 +1,4 @@
-import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree, treeBiomes } from './garden-layout.js';
+import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree, treeBiomes, moveTargets, connectedHexKeys } from './garden-layout.js';
 
 const storageKey = 'seed-garden-resources';
 export const stoneLimit = 10000;
@@ -37,11 +37,15 @@ export function createResources(storage) {
     if (Number.isSafeInteger(saved?.stone) && saved.stone >= 0) stone = Math.min(saved.stone, stoneLimit);
     if (Array.isArray(saved?.parcels)) {
       const restored = [];
-      for (const record of saved.parcels.slice(0, parcelLimit)) {
+      const records = saved.parcels.slice(0, parcelLimit);
+      // Moved plots need not be adjacent to an earlier plot in creation order.
+      const connected = saved.version === 3 ? connectedHexKeys(records.filter(validPosition)) : null;
+      for (const record of records) {
         if (!validPosition(record)) continue;
         if (restored.length === 0) {
           if (record.q !== 0 || record.r !== 0) continue;
-        } else if (!expansionTargets(restored).some((target) => hexKey(target) === hexKey(record))) continue;
+        } else if (connected ? !connected.has(hexKey(record)) || restored.some((parcel) => hexKey(parcel) === hexKey(record))
+          : !expansionTargets(restored).some((target) => hexKey(target) === hexKey(record))) continue;
         restored.push(readParcel(record, restored.length, Math.min(saved.parcels.length, parcelLimit)));
       }
       if (restored.length) parcels = restored;
@@ -57,7 +61,7 @@ export function createResources(storage) {
 
   function save() {
     // Spending and all parcels are written as one snapshot.
-    try { storage.setItem(storageKey, JSON.stringify({ version: 2, stone, parcels })); } catch { /* Keep the garden for this visit. */ }
+    try { storage.setItem(storageKey, JSON.stringify({ version: 3, stone, parcels })); } catch { /* Keep the garden for this visit. */ }
   }
   const parcelAt = (id) => Number.isInteger(id) && id >= 0 ? parcels[id] : null;
   function expansionProgress(now = Date.now()) {
@@ -82,6 +86,14 @@ export function createResources(storage) {
     expansionProgress,
     canExpand,
     expansionTargets() { return parcels.length < parcelLimit ? expansionTargets(parcels) : []; },
+    moveTargets(id) { return moveTargets(parcels, id); },
+    moveParcel(id, target) {
+      if (!validPosition(target) || !moveTargets(parcels, id).some((position) => hexKey(position) === hexKey(target))) return false;
+      parcels[id].q = target.q;
+      parcels[id].r = target.r;
+      save();
+      return true;
+    },
     newGame() {
       stone = 0;
       parcels = [emptyParcel()];

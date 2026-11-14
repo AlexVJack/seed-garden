@@ -57,6 +57,8 @@ const views = [];
 let activeParcel = 0;
 let selectedType = null;
 let shearsActive = false;
+let shovelActive = false;
+let movingParcel = null;
 let expansionVisible = false;
 let overviewActive = false;
 const raycaster = new THREE.Raycaster();
@@ -143,7 +145,8 @@ let expansionPositions = [];
 function refreshExpansionPreviews() {
   expansionPreviews.clear();
   $('#expansion-choices').replaceChildren();
-  expansionPositions = resources.expansionTargets();
+  $('#move-choices').replaceChildren();
+  expansionPositions = shovelActive ? movingParcel === null ? [] : resources.moveTargets(movingParcel) : resources.expansionTargets();
   expansionPositions.forEach((position, index) => {
     const offset = parcelPosition(position);
     const group = new THREE.Group();
@@ -159,10 +162,10 @@ function refreshExpansionPreviews() {
     expansionPreviews.add(group);
     const button = document.createElement('button');
     button.type = 'button';
-    button.dataset.neighbor = index;
-    button.textContent = `${translate('neighbor')} ${index + 1}`;
-    button.addEventListener('click', () => expandGarden(index));
-    $('#expansion-choices').appendChild(button);
+    button.dataset[shovelActive ? 'moveTarget' : 'neighbor'] = index;
+    button.textContent = `${translate(shovelActive ? 'moveTarget' : 'neighbor')} ${index + 1}`;
+    button.addEventListener('click', () => shovelActive ? moveParcel(index) : expandGarden(index));
+    $(shovelActive ? '#move-choices' : '#expansion-choices').appendChild(button);
   });
 }
 refreshExpansionPreviews();
@@ -186,7 +189,7 @@ function focusGarden(overview = false) {
     bounds.expandByPoint(view.root.position.clone().add(new THREE.Vector3(-3, 0, -3)));
     bounds.expandByPoint(view.root.position.clone().add(new THREE.Vector3(3, 5, 3)));
   });
-  if (overview && expansionVisible) expansionPreviews.children.forEach((preview) => {
+  if (overview && (expansionVisible || shovelActive)) expansionPreviews.children.forEach((preview) => {
     bounds.expandByPoint(preview.position.clone().add(new THREE.Vector3(-3, 0, -3)));
     bounds.expandByPoint(preview.position.clone().add(new THREE.Vector3(3, 0, 3)));
   });
@@ -235,7 +238,7 @@ function updateUI() {
       parcel.terrain.setBiome(biome);
       refreshPlants(parcel);
     }
-    parcel.terrain.outline.visible = views.length > 1 && parcel.id === activeParcel;
+    parcel.terrain.outline.visible = shovelActive ? parcel.id === movingParcel : views.length > 1 && parcel.id === activeParcel;
   });
   slotMarkers.position.copy(view.root.position);
   slotMarkers.visible = shearsActive || Boolean(selectedType && !isTree(selectedType));
@@ -249,10 +252,20 @@ function updateUI() {
   treeMarker.visible = isTree(selectedType);
   treeMarker.position.copy(view.root.position).add(new THREE.Vector3(0, groundY + 0.02, 0));
   $('#plant').hidden = !isTree(selectedType);
-  $('#cancel-planting').hidden = !selectedType && !shearsActive;
-  $('#planting-controls').hidden = (!selectedType && !shearsActive) || !$('#shop-panel').hidden;
+  $('#cancel-planting').hidden = !selectedType && !shearsActive && !shovelActive;
+  $('#planting-controls').hidden = (!selectedType && !shearsActive && !shovelActive) || !$('#shop-panel').hidden;
   $('#shears-toggle').setAttribute('aria-pressed', String(shearsActive));
+  $('#shovel-toggle').setAttribute('aria-pressed', String(shovelActive));
+  $('#shovel-toggle').disabled = views.length < 2;
+  $('#move-parcel-choices').hidden = !shovelActive;
+  $('#move-choices').hidden = !shovelActive || movingParcel === null;
+  document.querySelectorAll('[data-move-parcel]').forEach((button) => {
+    const id = Number(button.dataset.moveParcel);
+    button.disabled = !resources.moveTargets(id).length;
+    button.setAttribute('aria-pressed', String(id === movingParcel));
+  });
   $('#planting-controls').classList.toggle('shears-mode', shearsActive);
+  $('#planting-controls').classList.toggle('shovel-mode', shovelActive);
   $('#shop-toggle').classList.toggle('planting', Boolean(selectedType));
   $('#parcel-tabs').hidden = views.length < 2;
   $('#parcel-count').textContent = `${views.length} / ${parcelLimit}`;
@@ -263,7 +276,7 @@ function updateUI() {
   $('.growth-panel').hidden = !record.tree || mature;
   setUiState({ instruction: record.tree ? mature ? 'grown' : 'growing' : 'shopIdle',
     plantingStatus: isTree(selectedType) ? 'treeHint' : full ? 'gardenFull' : selectedType ? 'chooseSpot' : 'choosePlant',
-    placement: shearsActive ? 'shearsHint' : isTree(selectedType) ? 'treeHint' : 'placePlant' });
+    placement: shovelActive ? movingParcel === null ? 'shovelHint' : 'shovelDestination' : shearsActive ? 'shearsHint' : isTree(selectedType) ? 'treeHint' : 'placePlant' });
   const progress = resources.expansionProgress();
   const desertLabels = { flower: 'succulent', mushroom: 'cactus', bush: 'agave' };
   const forestLabels = { flower: 'lilyOfTheValley', mushroom: 'chanterelle', bush: 'blueberry' };
@@ -290,16 +303,17 @@ function updateUI() {
   const newlyReady = ready && !expansionVisible;
   const changed = ready !== expansionVisible;
   expansionVisible = ready;
-  expansionPreviews.visible = ready;
-  $('#expansion-hint').hidden = !ready || Boolean(selectedType) || shearsActive;
+  expansionPreviews.visible = shovelActive ? movingParcel !== null : ready;
+  $('#expansion-hint').hidden = !ready || Boolean(selectedType) || shearsActive || shovelActive;
   $('#expansion-choices').hidden = !ready;
   if (changed) resize();
-  if (newlyReady) { focusGarden(true); announce('expansionReady'); }
+  if (newlyReady && !shovelActive) { focusGarden(true); announce('expansionReady'); }
 }
 
 function setShopOpen(open) {
-  if (open && shearsActive) {
+  if (open && (shearsActive || shovelActive)) {
     shearsActive = false;
+    stopMoving();
     updateUI();
   }
   const panel = $('#shop-panel');
@@ -309,12 +323,13 @@ function setShopOpen(open) {
   toggle.setAttribute('aria-expanded', String(open));
   toggle.dataset.i18nAria = open ? 'closeShop' : 'openShop';
   toggle.setAttribute('aria-label', translate(toggle.dataset.i18nAria));
-  $('#planting-controls').hidden = open || (!selectedType && !shearsActive);
+  $('#planting-controls').hidden = open || (!selectedType && !shearsActive && !shovelActive);
   if (restoreFocus) toggle.focus({ preventScroll: true });
 }
 $('#shop-toggle').addEventListener('click', () => setShopOpen($('#shop-panel').hidden));
 $('#close-shop').addEventListener('click', () => setShopOpen(false));
 $('#shears-toggle').addEventListener('click', () => {
+  stopMoving();
   shearsActive = !shearsActive;
   selectedType = null;
   setShopOpen(false);
@@ -322,7 +337,66 @@ $('#shears-toggle').addEventListener('click', () => {
   if (shearsActive) announce('shearsHint');
 });
 
+function stopMoving() {
+  if (!shovelActive) return;
+  shovelActive = false;
+  movingParcel = null;
+  refreshExpansionPreviews();
+}
+function chooseMovingParcel(id) {
+  if (!shovelActive) return;
+  if (!resources.moveTargets(id).length) { announce('cannotMoveParcel'); return; }
+  movingParcel = id;
+  activeParcel = id;
+  refreshExpansionPreviews();
+  updateUI();
+  focusGarden(true);
+  announce('shovelDestination');
+}
+function moveParcel(index) {
+  if (!shovelActive || movingParcel === null || !resources.moveParcel(movingParcel, expansionPositions[index])) return;
+  const view = views[movingParcel];
+  const record = resources.parcel(movingParcel);
+  view.root.remove(view.terrain.group);
+  view.terrain.dispose();
+  view.terrain = makeTerrain(record);
+  view.terrain.setBiome(view.biome);
+  view.root.add(view.terrain.group);
+  const offset = parcelPosition(record);
+  view.root.position.set(offset.x, 0, offset.z);
+  view.minedAt = -Infinity;
+  stopMoving();
+  updateUI();
+  focusGarden();
+  announce('parcelMoved');
+  $('#shovel-toggle').focus({ preventScroll: true });
+}
+$('#shovel-toggle').addEventListener('click', () => {
+  if (shovelActive) stopMoving();
+  else {
+    shovelActive = true;
+    movingParcel = null;
+    shearsActive = false;
+    selectedType = null;
+    setShopOpen(false);
+    $('#move-parcel-choices').replaceChildren();
+    views.forEach(({ id }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.moveParcel = id;
+      button.textContent = `${translate('parcel')} ${id + 1}`;
+      button.addEventListener('click', () => chooseMovingParcel(id));
+      $('#move-parcel-choices').appendChild(button);
+    });
+    refreshExpansionPreviews();
+    announce('shovelHint');
+  }
+  updateUI();
+  focusGarden(true);
+});
+
 function selectType(type) {
+  stopMoving();
   shearsActive = false;
   const record = resources.parcel(activeParcel);
   if (isTree(type) && (record.tree || !canPlantTree(type, activeParcel, views.length))) return;
@@ -340,6 +414,7 @@ document.querySelectorAll('[data-plant-type], [data-tree-type]').forEach((button
   button.addEventListener('click', () => selectType(button.dataset.plantType || button.dataset.treeType));
 });
 $('#cancel-planting').addEventListener('click', () => {
+  stopMoving();
   shearsActive = false;
   selectedType = null;
   updateUI();
@@ -348,6 +423,7 @@ $('#cancel-planting').addEventListener('click', () => {
 
 function selectParcel(id) {
   if (!views[id]) return;
+  if (shovelActive) { chooseMovingParcel(id); return; }
   selectedType = null;
   activeParcel = id;
   updateUI();
@@ -406,9 +482,9 @@ function pointerHit(event) {
     for (let parent = object; parent; parent = parent.parent) if (!parent.visible) return false;
     return true;
   });
-  if (expansionVisible) {
+  if (expansionPreviews.visible) {
     const preview = raycaster.intersectObjects(expansionPreviews.children, true)[0];
-    if (preview && (!hit || preview.distance < hit.distance)) return { kind: 'expand', id: preview.object.parent.userData.targetIndex };
+    if (preview && (!hit || preview.distance < hit.distance)) return { kind: shovelActive ? 'move' : 'expand', id: preview.object.parent.userData.targetIndex };
   }
   if (!hit) return null;
   for (const view of views) if (hit.object === view.terrain.quarry) return { kind: 'quarry', id: view.id };
@@ -453,7 +529,7 @@ renderer.domElement.addEventListener('pointermove', (event) => {
   const gesture = gestures.get(event.pointerId);
   if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) gesture.moved = true;
   const hit = pointerHit(event);
-  renderer.domElement.style.cursor = shearsActive ? hit?.kind === 'plant' ? 'crosshair' : '' : hit?.kind === 'quarry' || hit?.kind === 'expand' || slotAtPointer(event) !== null || isTree(selectedType) ? 'pointer' : '';
+  renderer.domElement.style.cursor = shovelActive ? hit ? 'pointer' : '' : shearsActive ? hit?.kind === 'plant' ? 'crosshair' : '' : hit?.kind === 'quarry' || hit?.kind === 'expand' || slotAtPointer(event) !== null || isTree(selectedType) ? 'pointer' : '';
 });
 renderer.domElement.addEventListener('pointercancel', (event) => gestures.delete(event.pointerId));
 renderer.domElement.addEventListener('lostpointercapture', (event) => gestures.delete(event.pointerId));
@@ -463,6 +539,11 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   if (!gesture || gesture.moved || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 6) return;
   if (!$('#shop-panel').hidden) { setShopOpen(false); return; }
   const hit = pointerHit(event);
+  if (shovelActive) {
+    if (hit?.kind === 'move' && gesture.hit?.kind === 'move' && gesture.hit.id === hit.id) moveParcel(hit.id);
+    else if (hit && gesture.hit?.id === hit.id && gesture.hit.kind === hit.kind && (hit.kind === 'parcel' || hit.kind === 'quarry')) chooseMovingParcel(hit.id);
+    return;
+  }
   if (shearsActive) {
     if (hit?.kind === 'plant' && gesture.hit?.kind === 'plant' && gesture.hit.id === hit.id && gesture.hit.slot === hit.slot) {
       removePlant(hit.slot, hit.id);
@@ -492,6 +573,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
 }, { capture: true });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
+    stopMoving();
     shearsActive = false;
     selectedType = null;
     setShopOpen(false);

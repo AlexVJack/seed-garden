@@ -33,6 +33,29 @@ export function expansionTargets(parcels) {
   }));
   return [...targets.values()];
 }
+export function connectedHexKeys(parcels) {
+  const occupied = new Set(parcels.map(hexKey));
+  const connected = new Set();
+  const pending = occupied.has('0,0') ? [{ q: 0, r: 0 }] : [];
+  for (let i = 0; i < pending.length; i++) {
+    const position = pending[i];
+    const key = hexKey(position);
+    if (connected.has(key)) continue;
+    connected.add(key);
+    for (const direction of hexDirections) {
+      const neighbor = { q: position.q + direction.q, r: position.r + direction.r };
+      if (occupied.has(hexKey(neighbor)) && !connected.has(hexKey(neighbor))) pending.push(neighbor);
+    }
+  }
+  return connected;
+}
+export function moveTargets(parcels, id) {
+  if (!Number.isInteger(id) || id <= 0 || id >= parcels.length) return [];
+  const remaining = parcels.filter((_, index) => index !== id);
+  if (connectedHexKeys(remaining).size !== remaining.length) return [];
+  return expansionTargets(remaining).filter((target) => hexKey(target) !== hexKey(parcels[id])
+    && Math.max(Math.abs(target.q), Math.abs(target.r), Math.abs(target.q + target.r)) < parcelLimit);
+}
 const quarryAngle = Math.atan2(1.15, 1.55);
 
 // Leave an opening in the outer ring for the quarry and space around the tree.

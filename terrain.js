@@ -172,7 +172,13 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   const outline = new THREE.Line(new THREE.BufferGeometry().setFromPoints(outlinePoints), new THREE.LineBasicMaterial({ color: '#e5ecae' }));
   outline.visible = false;
   group.add(outline);
-  return { group, quarry, ground, outline, setBiome(biome) {
+  return { group, quarry, ground, outline, dispose() {
+    // Only per-terrain resources are owned here; shared primitives remain alive.
+    for (const mesh of [rocks, grasses, ripples, petals, litter, moss, mapleLitter]) mesh.dispose();
+    for (const surface of [earth, turf, grass, stones, sandRidges, quarry.material, outline.material]) surface.dispose();
+    quarryGeometry.dispose();
+    outline.geometry.dispose();
+  }, setBiome(biome) {
     const conifer = biome === 'conifer';
     const savanna = biome === 'savanna';
     const desert = biome === 'desert';

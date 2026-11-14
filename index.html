@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
     <title>Seed — a little garden</title>
-    <link rel="stylesheet" href="./style.css?v=sakura-1" />
+    <link rel="stylesheet" href="./style.css?v=shovel-1" />
     <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
           "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-          "./main.js": "./main.js?v=dark-oak-1",
+          "./main.js": "./main.js?v=shovel-1",
           "./plant-batches.js": "./plant-batches.js?v=plant-batches-1",
-          "./i18n.js": "./i18n.js?v=maple-1",
-          "./garden-layout.js": "./garden-layout.js?v=maple-1",
-          "./resources.js": "./resources.js?v=quarry-1",
+          "./i18n.js": "./i18n.js?v=shovel-1",
+          "./garden-layout.js": "./garden-layout.js?v=shovel-1",
+          "./resources.js": "./resources.js?v=shovel-1",
           "./trees.js": "./trees.js?v=maple-1",
           "./plants.js": "./plants.js?v=maple-1",
-          "./terrain.js": "./terrain.js?v=maple-1",
+          "./terrain.js": "./terrain.js?v=shovel-1",
           "./maple-leaf.js": "./maple-leaf.js?v=maple-1",
           "./terrain-layout.js": "./terrain-layout.js?v=quarry-1",
           "./random.js": "./random.js?v=quarry-1",
@@ -62,6 +62,9 @@
       <button id="shears-toggle" type="button" data-i18n-aria="shears" aria-label="Garden shears" aria-pressed="false">
         <svg viewBox="0 0 40 40" aria-hidden="true"><path d="m15 23 13-17M25 23 12 6" fill="none" stroke="#858b90" stroke-width="3.5" stroke-linecap="round"/><circle cx="20" cy="17" r="2.5" fill="#687078"/><ellipse cx="12" cy="29" rx="5" ry="7" transform="rotate(25 12 29)" fill="none" stroke="#739065" stroke-width="3.5"/><ellipse cx="28" cy="29" rx="5" ry="7" transform="rotate(-25 28 29)" fill="none" stroke="#739065" stroke-width="3.5"/></svg>
       </button>
+      <button id="shovel-toggle" type="button" data-i18n-aria="shovel" aria-label="Move a plot" aria-pressed="false" disabled>
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M16 5h12v4a6 6 0 0 1-12 0Z" fill="none" stroke="#739065" stroke-width="3" stroke-linejoin="round"/><path d="M22 15v11" stroke="#99846b" stroke-width="4"/><path d="M13 25h18v4c0 5-9 8-9 8s-9-3-9-8Z" fill="#969ca1"/><path d="M22 26v8" stroke="#747b81" stroke-width="2"/></svg>
+      </button>
       <section id="shop-panel" class="plant-shop" data-i18n-aria="plantShop" aria-label="Plant something" hidden>
         <div class="shop-heading"><span data-i18n="plantShop">Plant something</span><span><span data-i18n="places">Places</span> <output id="slots-used">0 / 24</output></span><button id="close-shop" type="button" data-i18n-aria="closeShop" aria-label="Close shop">×</button></div>
         <div class="shop-section-title" data-i18n="treeSeeds">Tree seeds</div>
@@ -97,7 +100,9 @@
       </section>
       <div id="planting-controls" class="planting-controls" hidden>
         <span id="placement-label">Choose a glowing place</span><span class="shears-compact-hint" data-i18n="shearsHintShort" aria-hidden="true">Tap a plant to remove it</span><button class="plant-button" id="plant" data-i18n="plantCenter" hidden>Plant in center</button><button id="cancel-planting" data-i18n-aria="cancel" aria-label="Cancel" hidden><span class="cancel-text" data-i18n="cancel">Cancel</span><span class="cancel-icon" aria-hidden="true">×</span></button>
-        <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
+         <div id="slot-choices" class="slot-choices" data-i18n-aria="chooseSpot" hidden></div>
+         <div id="move-parcel-choices" class="slot-choices" data-i18n-aria="shovel" hidden></div>
+         <div id="move-choices" class="slot-choices" data-i18n-aria="moveTarget" hidden></div>
       </div>
       <nav id="parcel-tabs" class="parcel-tabs" data-i18n-aria="parcels" aria-label="Garden plots" hidden>
         <button id="garden-overview" type="button" data-i18n="overview">Overview</button>
@@ -115,7 +120,8 @@
         document.querySelector('#plant').disabled = true;
         document.querySelector('#mine-stone').disabled = true;
         document.querySelector('#shop-toggle').disabled = true;
-        document.querySelector('#shears-toggle').disabled = true;
+         document.querySelector('#shears-toggle').disabled = true;
+         document.querySelector('#shovel-toggle').disabled = true;
         document.querySelectorAll('[data-plant-type], [data-tree-type], [data-slot], [data-neighbor], [data-parcel]').forEach((button) => { button.disabled = true; });
       });
     </script>

@@ -32,6 +32,12 @@ const messages = {
     openShop: 'Open shop',
     closeShop: 'Close shop',
     shears: 'Garden shears',
+    shovel: 'Move a plot',
+    shovelHint: 'Choose a plot to move. The first plot and connecting plots stay in place.',
+    shovelDestination: 'Choose a glowing hexagon to move the plot for free.',
+    moveTarget: 'Move plot here',
+    cannotMoveParcel: 'This plot cannot be moved: the first plot stays fixed and the garden must remain connected.',
+    parcelMoved: 'Plot moved and saved. Its tree and plants are unchanged.',
     shearsHint: 'Tap a small plant to remove it. No stone is refunded.',
     shearsHintShort: 'Tap a plant to remove it',
     plantRemoved: 'Plant removed. Its place is free again.',
@@ -119,6 +125,12 @@ const messages = {
     openShop: 'Відкрити магазин',
     closeShop: 'Закрити магазин',
     shears: 'Садові ножиці',
+    shovel: 'Перенести ділянку',
+    shovelHint: 'Обери ділянку для перенесення. Перша ділянка та ділянки-перемички залишаються на місці.',
+    shovelDestination: 'Обери підсвічений шестикутник: перенесення безкоштовне.',
+    moveTarget: 'Перенести ділянку сюди',
+    cannotMoveParcel: 'Цю ділянку не можна перенести: перша залишається на місці, а сад має бути зв’язним.',
+    parcelMoved: 'Ділянку перенесено та збережено. Дерево й рослини залишилися.',
     shearsHint: 'Натисни на невелику рослину, щоб видалити. Каміння не повертається.',
     shearsHintShort: 'Торкнись рослини, щоб прибрати',
     plantRemoved: 'Рослину видалено. Місце знову вільне.',
@@ -222,6 +234,12 @@ function renderLanguage() {
   });
   document.querySelectorAll('[data-neighbor]').forEach((button) => {
     button.textContent = `${translate('neighbor')} ${Number(button.dataset.neighbor) + 1}`;
+  });
+  document.querySelectorAll('[data-move-target]').forEach((button) => {
+    button.textContent = `${translate('moveTarget')} ${Number(button.dataset.moveTarget) + 1}`;
+  });
+  document.querySelectorAll('[data-move-parcel]').forEach((button) => {
+    button.textContent = `${translate('parcel')} ${Number(button.dataset.moveParcel) + 1}`;
   });
   document.querySelectorAll('[data-parcel]').forEach((button) => {
     button.textContent = `${translate('parcel')} ${Number(button.dataset.parcel) + 1}`;
