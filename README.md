@@ -68,6 +68,8 @@ Test prices, the 24 places, and saved state with Node.js 22+:
 node --experimental-default-type=module --test tests/garden.test.mjs
 ```
 
+To check plant batching, start the local server and open **http://localhost:8080/tests/plant-batches.html**. The browser test compares geometry, rendered images with shadows, plant picking, GPU geometry disposal, and draw calls for 36 planted plots. It uses the same Three.js CDN and requires WebGL. This is an isolated test scene and does not change your saved garden.
+
 ## Languages
 
 The interface supports English and Ukrainian. On your first visit, Ukrainian is selected if it appears in your browser's language preferences; otherwise, English is used. The **EN / УК** switch remembers your choice for future visits when browser storage is available. Switching languages never reloads the page or interrupts tree growth.
@@ -78,4 +80,4 @@ Interface text and screen-reader descriptions live in the dictionaries in `i18n.
 
 `crypto.getRandomValues()` creates a random seed. A deterministic generator then chooses branch curves, lengths, directions, and foliage colors. Branches divide recursively, taper, and reach upward. Each segment appears after the preceding one grows, and foliage unfolds at branch tips. This is a stylized procedural model rather than a botanical simulation.
 
-Tree geometry lives in `trees.js`, small plants in `plants.js`, and terrain in `terrain.js`. `garden-layout.js` defines growth time, neighbors, and planting places; `resources.js` saves progress and validates purchases and expansion. Decorative swaying is disabled when the system's reduced-motion preference is enabled.
+Tree geometry lives in `trees.js`, small plants in `plants.js`, and terrain in `terrain.js`. `plant-batches.js` merges small-plant geometry by material within each plot, preserves individual plant picking for shears, and disposes its owned geometry when replaced. `garden-layout.js` defines growth time, neighbors, and planting places; `resources.js` saves progress and validates purchases and expansion. Decorative swaying is disabled when the system's reduced-motion preference is enabled.

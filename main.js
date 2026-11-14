@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { announce, setUiState, translate } from './i18n.js';
 import { createResources } from './resources.js';
 import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, parcelPosition, canPlantTree, treeBiomes, treeUnlockPlots } from './garden-layout.js';
-import { makePlant } from './plants.js';
+import { makePlantBatch, plantSlotAtHit } from './plant-batches.js';
 import { makeTree } from './trees.js';
 import { makeTerrain, groundY } from './terrain.js';
 
@@ -80,14 +80,11 @@ function buildTree(view, record) {
 }
 
 function refreshPlants(view) {
+  const batch = makePlantBatch(resources.parcel(view.id).plants, view.biome, groundY);
+  view.plantBatch?.dispose();
   view.plants.clear();
-  resources.parcel(view.id).plants.forEach((plant) => {
-    const slot = plantingSlots[plant.slot];
-    const group = makePlant(plant.type, plant.seed, view.biome);
-    group.userData.plantSlot = plant.slot;
-    group.position.set(slot.x, groundY, slot.z);
-    view.plants.add(group);
-  });
+  view.plantBatch = batch;
+  view.plants.add(batch.group);
 }
 
 function createParcel(id) {
@@ -415,10 +412,7 @@ function pointerHit(event) {
   if (!hit) return null;
   for (const view of views) if (hit.object === view.terrain.quarry) return { kind: 'quarry', id: view.id };
   let parent = hit.object;
-  let plantSlot;
-  for (let object = hit.object; object; object = object.parent) {
-    if (object.userData.plantSlot !== undefined) plantSlot = object.userData.plantSlot;
-  }
+  const plantSlot = plantSlotAtHit(hit);
   while (parent && parent.userData.parcelId === undefined) parent = parent.parent;
   if (shearsActive && parent && plantSlot !== undefined) return { kind: 'plant', id: parent.userData.parcelId, slot: plantSlot };
   return parent ? { kind: 'parcel', id: parent.userData.parcelId } : null;
