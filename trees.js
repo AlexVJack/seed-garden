@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRandom } from './plants.js';
+import { mapleLeafGeometry } from './maple-leaf.js';
 
 const material = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
 const bark = material('#907052');
@@ -15,6 +16,8 @@ const sakuraBark = material('#66504f');
 const sakuraBlooms = ['#f7dce4', '#edb4cb', '#df94b5', '#fff0ee'].map(material);
 const oakBark = material('#493b32');
 const oakLeaves = ['#304c38', '#3e5b3b', '#506b43', '#617749'].map(material);
+const mapleBark = material('#817267');
+const mapleLeaves = ['#d99c36', '#e5b94d', '#d66b32', '#ba4935', '#cc7835'].map(material);
 const leafGeometry = new THREE.IcosahedronGeometry(0.38, 0);
 const needleGeometry = new THREE.ConeGeometry(1, 1, 7);
 const up = new THREE.Vector3(0, 1, 0);
@@ -71,7 +74,46 @@ export function makeTree(kind, seed) {
     if (level >= 2) foliage(position, birth + span, level === 3 ? 0.9 + random() * 0.35 : 1.1);
   }
 
-  if (kind === 'darkOak') {
+  if (kind === 'maple') {
+    const height = 1.55 + random() * 0.25;
+    const lean = new THREE.Vector3((random() - 0.5) * 0.18, 1, (random() - 0.5) * 0.18).normalize();
+    for (let i = 0; i < 7; i++) {
+      segment(lean.clone().multiplyScalar(height * i / 7), lean, height / 7,
+        0.145 - i * 0.008, 0.137 - i * 0.008, i * 0.035, 0.085, mapleBark);
+    }
+    const phase = random() * Math.PI * 2;
+    const limbs = 5 + Math.floor(random() * 2);
+    const tint = Math.floor(random() * mapleLeaves.length);
+    for (let i = 0; i < limbs; i++) {
+      const angle = phase + i * Math.PI * 2 / limbs;
+      const origin = lean.clone().multiplyScalar(height * (0.7 + random() * 0.25));
+      const direction = new THREE.Vector3(Math.cos(angle) * 0.5, 1.1 + random() * 0.35, Math.sin(angle) * 0.5).normalize();
+      const length = 1.2 + random() * 0.5;
+      const fork = origin.clone().addScaledVector(direction, length * 0.6);
+      segment(origin, direction, length * 0.6, 0.075, 0.043, 0.2 + i * 0.018, 0.22, mapleBark);
+      for (let j = 0; j < 3; j++) {
+        const a = angle + (j - 1) * 0.95;
+        const heading = new THREE.Vector3(Math.cos(a) * 0.8, 0.8 + random() * 0.6, Math.sin(a) * 0.8).normalize();
+        const reach = length * (0.45 + random() * 0.2);
+        segment(fork, heading, reach, 0.04, 0.012, 0.4 + j * 0.025, 0.2, mapleBark);
+        const tip = fork.clone().addScaledVector(heading, reach);
+        for (let k = 0; k < 5; k++) {
+          const surface = mapleLeaves[(tint + i + (random() < 0.35 ? 1 : 0)) % mapleLeaves.length];
+          const mesh = new THREE.Mesh(leafGeometry, surface);
+          mesh.position.copy(tip).add(new THREE.Vector3((random() - 0.5) * 0.65, (random() - 0.5) * 0.55, (random() - 0.5) * 0.65));
+          mesh.rotation.set(random(), random() * Math.PI, random());
+          const size = 0.8 + random() * 0.35;
+          grow(mesh, 0.6 + random() * 0.15, 0.18, new THREE.Vector3(size, size * 1.15, size));
+          if (k < 3) {
+            const detail = new THREE.Mesh(mapleLeafGeometry, surface);
+            detail.position.copy(mesh.position).add(new THREE.Vector3(Math.cos(a) * 0.32, 0.05, Math.sin(a) * 0.32));
+            detail.rotation.set((random() - 0.5) * 0.9, a + Math.PI / 2, (random() - 0.5) * 0.8);
+            grow(detail, 0.72 + random() * 0.1, 0.15, new THREE.Vector3(0.19, 0.19, 0.19));
+          }
+        }
+      }
+    }
+  } else if (kind === 'darkOak') {
     const height = 1.9 + random() * 0.4;
     const width = 0.27 + random() * 0.07;
     const lean = new THREE.Vector3((random() - 0.5) * 0.25, 0, (random() - 0.5) * 0.25);

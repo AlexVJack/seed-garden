@@ -47,36 +47,41 @@ function worldVertices(group) {
 }
 
 async function run() {
-  const oak = makeTree('darkOak', 93421);
-  const sameOak = makeTree('darkOak', 93421);
-  assert(oak.pieces.length > 0, 'dark oak has growing geometry');
-  assert(oak.pieces.length === sameOak.pieces.length, 'dark oak seed reproduces piece count');
-  oak.pieces.forEach((piece, i) => {
-    const other = sameOak.pieces[i];
-    assert(piece.mesh.position.equals(other.mesh.position) && piece.scale.equals(other.scale), 'dark oak seeded shape is stable');
-    assert(piece.birth >= 0 && piece.birth + piece.span <= 1.000001, 'dark oak growth stays within its duration');
-    piece.mesh.scale.copy(piece.scale);
-  });
-  oak.group.updateMatrixWorld(true);
-  const beforeFinish = worldVertices(oak.group);
-  oak.finish();
-  const afterFinish = worldVertices(oak.group);
-  for (const [surface, vertices] of beforeFinish) {
-    const actual = afterFinish.get(surface);
-    assert(actual?.length === vertices.length, 'mature oak preserves geometry');
-    vertices.forEach((value, i) => assert(Math.abs(value - actual[i]) < 0.00001, 'mature oak preserves vertices'));
+  for (const kind of ['darkOak', 'maple']) {
+    const tree = makeTree(kind, 93421);
+    const sameTree = makeTree(kind, 93421);
+    assert(tree.pieces.length > 0, `${kind} has growing geometry`);
+    assert(tree.pieces.length === sameTree.pieces.length, `${kind} seed reproduces piece count`);
+    tree.pieces.forEach((piece, i) => {
+      const other = sameTree.pieces[i];
+      assert(piece.mesh.position.equals(other.mesh.position) && piece.scale.equals(other.scale)
+        && piece.mesh.quaternion.equals(other.mesh.quaternion), `${kind} seeded shape is stable`);
+      assert(piece.birth >= 0 && piece.birth + piece.span <= 1.000001, `${kind} growth stays within its duration`);
+      piece.mesh.scale.copy(piece.scale);
+    });
+    tree.group.updateMatrixWorld(true);
+    const beforeFinish = worldVertices(tree.group);
+    tree.finish();
+    const afterFinish = worldVertices(tree.group);
+    for (const [surface, vertices] of beforeFinish) {
+      const actual = afterFinish.get(surface);
+      assert(actual?.length === vertices.length, `mature ${kind} preserves geometry`);
+      vertices.forEach((value, i) => assert(Math.abs(value - actual[i]) < 0.00001, `mature ${kind} preserves vertices`));
+    }
+    tree.dispose();
+    sameTree.dispose();
   }
-  oak.dispose();
-  sameOak.dispose();
   const terrain = makeTerrain();
   terrain.setBiome('meadow');
   const meadowColor = terrain.ground.material.color.clone();
   const visibleBefore = terrain.group.children.map(child => child.visible);
-  terrain.setBiome('darkForest');
-  assert(!terrain.ground.material.color.equals(meadowColor), 'dark forest has distinct soil');
-  terrain.setBiome('meadow');
-  assert(terrain.ground.material.color.equals(meadowColor), 'canceling forest preview restores soil');
-  assert(terrain.group.children.every((child, i) => child.visible === visibleBefore[i]), 'canceling forest preview restores decoration');
+  for (const biome of ['darkForest', 'autumn']) {
+    terrain.setBiome(biome);
+    assert(!terrain.ground.material.color.equals(meadowColor), `${biome} has distinct soil`);
+    terrain.setBiome('meadow');
+    assert(terrain.ground.material.color.equals(meadowColor), `canceling ${biome} preview restores soil`);
+    assert(terrain.group.children.every((child, i) => child.visible === visibleBefore[i]), `canceling ${biome} preview restores decoration`);
+  }
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(320, 320);
   renderer.shadowMap.enabled = true;

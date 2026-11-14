@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createRandom } from './plants.js';
 import { plantingSlots, terrainSeed } from './garden-layout.js';
 import { quarryLayout, quarryRadius } from './terrain-layout.js';
+import { mapleLeafGeometry } from './maple-leaf.js';
 
 export const groundY = 0.26;
 const material = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.95, ...extra });
@@ -15,6 +16,8 @@ const petalGeometry = new THREE.SphereGeometry(1, 5, 3);
 const petalMaterial = material('#efd0dc');
 const litterMaterial = material('#8c7148');
 const mossMaterial = material('#536b41');
+const mapleLitterMaterial = material('#ffffff');
+const mapleLitterColors = ['#d99c36', '#c76031', '#b94d32'];
 
 export function makeTerrain({ q = 0, r = 0 } = {}) {
   const group = new THREE.Group();
@@ -146,6 +149,22 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
   litter.visible = moss.visible = false;
   litter.receiveShadow = moss.receiveShadow = true;
   group.add(litter, moss);
+  const mapleLitter = new THREE.InstancedMesh(mapleLeafGeometry, mapleLitterMaterial, petalCount);
+  for (let i = 0; i < petalCount; i++) {
+    petals.getMatrixAt(i, transform.matrix);
+    transform.matrix.decompose(transform.position, transform.quaternion, transform.scale);
+    const size = transform.scale.x * 2.3;
+    transform.rotation.set(-Math.PI / 2, 0, i * 2.39996);
+    transform.scale.setScalar(size);
+    transform.updateMatrix();
+    mapleLitter.setMatrixAt(i, transform.matrix);
+    mapleLitter.setColorAt(i, new THREE.Color(mapleLitterColors[i % mapleLitterColors.length]));
+  }
+  mapleLitter.instanceMatrix.needsUpdate = true;
+  mapleLitter.instanceColor.needsUpdate = true;
+  mapleLitter.visible = false;
+  mapleLitter.receiveShadow = true;
+  group.add(mapleLitter);
   const outlinePoints = Array.from({ length: 7 }, (_, i) => {
     const angle = Math.PI / 2 + i * Math.PI / 3;
     return new THREE.Vector3(Math.cos(angle) * 2.66, groundY + 0.018, Math.sin(angle) * 2.66);
@@ -159,14 +178,16 @@ export function makeTerrain({ q = 0, r = 0 } = {}) {
     const desert = biome === 'desert';
     const blossom = biome === 'blossom';
     const forest = biome === 'darkForest';
+    const autumn = biome === 'autumn';
+    mapleLitter.visible = autumn;
     litter.visible = moss.visible = forest;
     petals.visible = blossom;
     grasses.visible = !desert;
     ripples.visible = desert;
-    stones.color.set(forest ? '#777970' : blossom ? '#777e80' : desert ? '#ba8768' : '#b1b4b2');
-    earth.color.set(forest ? '#594938' : blossom ? '#897978' : desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
-    turf.color.set(forest ? '#626648' : blossom ? '#98ad9e' : desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
-    grass.color.set(forest ? '#49613b' : blossom ? '#668b77' : savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
+    stones.color.set(autumn ? '#a18c78' : forest ? '#777970' : blossom ? '#777e80' : desert ? '#ba8768' : '#b1b4b2');
+    earth.color.set(autumn ? '#916447' : forest ? '#594938' : blossom ? '#897978' : desert ? '#c4a070' : savanna ? '#ad8050' : conifer ? '#716349' : '#a68563');
+    turf.color.set(autumn ? '#b09665' : forest ? '#626648' : blossom ? '#98ad9e' : desert ? '#ecd39c' : savanna ? '#d3b473' : conifer ? '#657a55' : '#a8b782');
+    grass.color.set(autumn ? '#a37943' : forest ? '#49613b' : blossom ? '#668b77' : savanna ? '#b59a54' : conifer ? '#4d684b' : '#899e69');
     earth.color.offsetHSL(hueShift, 0, lightnessShift * 0.6);
     turf.color.offsetHSL(hueShift, 0, lightnessShift);
     grass.color.offsetHSL(hueShift, 0, lightnessShift * 0.8);

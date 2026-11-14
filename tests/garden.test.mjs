@@ -573,3 +573,37 @@ test('dark oak unlocks at six plots and preserves forest, growth, plants, shears
   assert.equal(restored.expand({ q: 6, r: 0 }, matureAt), true);
   assert.equal(createResources(saved).parcel(5).biome, 'darkForest');
 });
+
+test('maple unlocks at seven plots and preserves autumn, growth, plants, shears and expansion', () => {
+  const parcels = Array.from({ length: 6 }, (_, q) => ({ q, r: 0, plants: [], tree: null }));
+  const tree = eligibleSave().tree;
+  const locked = createResources(storage(JSON.stringify({ parcels })));
+  assert.equal(locked.setTree(tree, 1, 'maple'), false);
+  assert.equal(canPlantTree('maple', 1, 6), false);
+  assert.equal(canPlantTree('maple', 1, 7), true);
+  parcels.push({ q: 6, r: 0, plants: [], tree: null });
+  const saved = storage(JSON.stringify({ stone: 1000, parcels }));
+  const garden = createResources(saved);
+  assert.equal(garden.setTree(tree, 0, 'maple'), false);
+  assert.equal(garden.setTree(tree, 1, 'maple'), true);
+  const growingTree = { ...tree, seed: 57814, startedAt: Date.now() };
+  assert.equal(garden.setTree(growingTree, 6, 'maple'), true);
+  const before = garden.stone;
+  eligibleSave().plants.forEach(({ type, slot, seed }) => assert.equal(garden.plant(type, slot, seed, 6), true));
+  assert.equal(garden.stone, before - 29);
+  const restored = createResources(saved);
+  assert.deepEqual(restored.parcels, garden.parcels);
+  assert.deepEqual(restored.parcel(6).tree, growingTree);
+  assert.equal(restored.parcel(6).treeType, 'maple');
+  assert.equal(restored.parcel(6).biome, 'autumn');
+  assert.equal(restored.parcel(5).biome, 'meadow');
+  assert.equal(restored.setTree(tree, 6, 'apple'), false);
+  const matureAt = growingTree.startedAt + growthDuration;
+  assert.equal(restored.canExpand(matureAt - 1), false);
+  assert.equal(restored.canExpand(matureAt), true);
+  assert.equal(restored.removePlant(0, 6), true);
+  assert.equal(restored.canExpand(matureAt), false);
+  assert.equal(restored.plant('bush', 0, 99, 6), true);
+  assert.equal(restored.expand({ q: 7, r: 0 }, matureAt), true);
+  assert.equal(createResources(saved).parcel(6).biome, 'autumn');
+});

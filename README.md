@@ -66,6 +66,12 @@ Unlocking the sixth plot makes free **dark oak** seeds available on any empty pl
 
 The forest has dark soil, moss and static fallen leaves. Small plants become white-belled **lilies of the valley** (1 stone), golden rippled **chanterelles** (2 stone), and **blueberry bushes** with blue-purple berries (3 stone). Expansion requires a mature oak, 3 blueberry bushes, 6 chanterelles, 8 lilies and 150 stone on the latest plot. Selecting seeds previews the biome, canceling restores it, and planting saves it. Berries are decorative, not harvestable.
 
+## Autumn maple grove biome
+
+Unlocking the seventh plot makes free **maple** seeds available on any empty plot except the first. A slender grey-brown trunk and upward forks support a tall rounded golden-orange and red crown. Lobed maple leaves appear along the crown edges and on the ground.
+
+The grove has warm brown soil, russet grass, golden flowers, chestnut mushrooms and copper-colored shrubs. Categories, prices and expansion requirements stay unchanged. Seeded appearance, biome and 26-second growth survive reloads. Selecting seeds previews the biome; canceling restores it. Autumn is permanent, without seasonal mechanics or falling-leaf animation.
+
 ## Checks
 
 Test prices, the 24 places, and saved state with Node.js 22+:
