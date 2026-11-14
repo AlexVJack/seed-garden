@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f4ed" />
     <title>Seed — a little garden</title>
-    <link rel="stylesheet" href="./style.css?v=gardeners-2" />
+    <link rel="stylesheet" href="./style.css?v=miners-1" />
     <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
           "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-          "./main.js": "./main.js?v=gardeners-2",
+          "./main.js": "./main.js?v=miners-1",
           "./plant-batches.js": "./plant-batches.js?v=plant-batches-1",
-          "./i18n.js": "./i18n.js?v=gardeners-2",
+          "./i18n.js": "./i18n.js?v=miners-1",
           "./garden-layout.js": "./garden-layout.js?v=shovel-1",
-          "./resources.js": "./resources.js?v=gardeners-2",
+          "./resources.js": "./resources.js?v=miners-1",
           "./trees.js": "./trees.js?v=maple-1",
           "./plants.js": "./plants.js?v=maple-1",
           "./terrain.js": "./terrain.js?v=shovel-1",
@@ -23,8 +23,11 @@
           "./terrain-layout.js": "./terrain-layout.js?v=quarry-1",
           "./random.js": "./random.js?v=quarry-1",
           "./dev-tools.js": "./dev-tools.js?v=quarry-1",
-          "./gardener.js": "./gardener.js?v=gardeners-2",
-          "./gardener-logic.js": "./gardener-logic.js?v=gardener-1"
+          "./gardener.js": "./gardener.js?v=miners-1",
+          "./gardener-logic.js": "./gardener-logic.js?v=gardener-1",
+          "./worker.js": "./worker.js?v=miners-1",
+          "./miner.js": "./miner.js?v=miner-point-2",
+          "./miner-logic.js": "./miner-logic.js?v=miners-1"
         }
       }
     </script>
@@ -89,7 +92,7 @@
           <button type="button" data-plant-type="mushroom" aria-pressed="false" disabled><span aria-hidden="true">🍄</span><span data-i18n="mushroom">Mushroom</span><small>2 <span data-i18n="stone">Stone</span></small></button>
           <button type="button" data-plant-type="bush" aria-pressed="false" disabled><span aria-hidden="true">🌿</span><span data-i18n="bush">Bush</span><small>3 <span data-i18n="stone">Stone</span></small></button>
         </div>
-        <div class="shop-section-title"><span data-i18n="gardener">Gardener</span> · <span id="gardener-parcel" data-gardener-parcel="0">Plot 1</span></div>
+        <div class="shop-section-title"><span data-i18n="gardener">Gardener</span> · <span id="gardener-parcel" data-worker-parcel="0">Plot 1</span></div>
         <div class="plant-options">
           <button id="buy-gardener" type="button" disabled><span aria-hidden="true">🧑‍🌾</span><span data-i18n="buyGardener">Hire a gardener</span><small id="gardener-price">100 <span data-i18n="stone">Stone</span></small></button>
         </div>
@@ -98,6 +101,16 @@
           <summary data-i18n="transferGardener">Transfer a gardener here for free</summary>
           <label><span data-i18n="gardenerSource">From plot</span> <select id="gardener-source"></select></label>
           <button id="transfer-gardener" type="button" data-i18n="confirmGardenerTransfer">Transfer here</button>
+        </details>
+        <div class="shop-section-title"><span data-i18n="miner">Miner</span> · <span id="miner-parcel" data-worker-parcel="0">Plot 1</span></div>
+        <div class="plant-options">
+          <button id="buy-miner" type="button" disabled><span aria-hidden="true">⛏️</span><span data-i18n="buyMiner">Hire a miner</span><small id="miner-price">100 <span data-i18n="fruit">Fruit and nuts</span></small></button>
+        </div>
+        <p id="miner-status" class="gardener-status" data-i18n="minerDescription">Hire for 100 fruit. Mines one stone every 3 seconds while the game is visible. No tree required.</p>
+        <details id="miner-transfer" class="gardener-transfer" hidden>
+          <summary data-i18n="transferMiner">Transfer a miner here for free</summary>
+          <label><span data-i18n="gardenerSource">From plot</span> <select id="miner-source"></select></label>
+          <button id="transfer-miner" type="button" data-i18n="confirmGardenerTransfer">Transfer here</button>
         </details>
         <div class="shop-status"><p id="planting-status" role="status"></p></div>
         <details id="expansion-progress" class="expansion-progress">
@@ -140,6 +153,8 @@
          document.querySelector('#shovel-toggle').disabled = true;
         document.querySelector('#buy-gardener').disabled = true;
         document.querySelector('#transfer-gardener').disabled = true;
+        document.querySelector('#buy-miner').disabled = true;
+        document.querySelector('#transfer-miner').disabled = true;
         document.querySelectorAll('[data-plant-type], [data-tree-type], [data-slot], [data-neighbor], [data-parcel]').forEach((button) => { button.disabled = true; });
       });
     </script>

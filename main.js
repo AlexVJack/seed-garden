@@ -9,6 +9,8 @@ import { makeTerrain, groundY } from './terrain.js';
 import { makeGardener } from './gardener.js';
 import { gardenerCost } from './gardener-logic.js';
 import { quarryLayout } from './terrain-layout.js';
+import { makeMiner } from './miner.js';
+import { minerCost } from './miner-logic.js';
 
 const $ = (selector) => document.querySelector(selector);
 let storage;
@@ -148,6 +150,39 @@ $('#transfer-gardener').addEventListener('click', () => {
   updateUI();
   announce('gardenerTransferred');
 });
+const minerViews = new Map();
+function syncMiners() {
+  for (const view of views) {
+    const record = resources.parcel(view.id);
+    const signature = `${record.q},${record.r}`;
+    const previous = minerViews.get(view.id);
+    if (previous && (!record.miner || previous.signature !== signature)) {
+      view.root.remove(previous.group);
+      previous.dispose();
+      minerViews.delete(view.id);
+    }
+    if (!record.miner || minerViews.has(view.id)) continue;
+    const miner = makeMiner(quarryLayout(record), groundY, () => {
+      view.minedAt = performance.now();
+      if (resources.collectStone(view.id)) updateUI();
+    });
+    miner.signature = signature;
+    minerViews.set(view.id, miner);
+    view.root.add(miner.group);
+  }
+}
+syncMiners();
+$('#buy-miner').addEventListener('click', () => {
+  if (!resources.buyMiner(activeParcel)) return;
+  updateUI();
+  announce('minerPurchased');
+});
+$('#transfer-miner').addEventListener('click', () => {
+  const source = $('#miner-source').value;
+  if (source === '' || !resources.transferMiner(Number(source), activeParcel)) return;
+  updateUI();
+  announce('minerTransferred');
+});
 
 const slotMarkers = new THREE.Group();
 const slotGeometry = new THREE.RingGeometry(0.12, 0.17, 20);
@@ -246,30 +281,21 @@ function focusGarden(overview = false) {
 }
 $('#garden-overview').addEventListener('click', () => focusGarden(true));
 
-function updateUI() {
-  const view = views[activeParcel];
-  const record = resources.parcel(activeParcel);
-  const occupied = new Set(record.plants.map((plant) => plant.slot));
-  const full = occupied.size === plantingSlots.length;
-  if (selectedType && !isTree(selectedType) && (full || resources.stone < plantCosts[selectedType])) selectedType = null;
-  $('#stone-count').textContent = resources.stone;
-  $('#stone-count').dataset.digits = String(resources.stone).length;
-  $('#fruit-count').textContent = resources.fruit;
-  $('#fruit-count').dataset.digits = String(resources.fruit).length;
-  syncGardeners();
-  const hasGardener = resources.hasGardener(activeParcel);
-  $('#buy-gardener').disabled = hasGardener || resources.stone < gardenerCost;
-  const gardenerLabel = $('#buy-gardener [data-i18n]');
-  gardenerLabel.dataset.i18n = hasGardener ? 'gardenerWorking' : 'buyGardener';
-  gardenerLabel.textContent = translate(gardenerLabel.dataset.i18n);
-  $('#gardener-price').hidden = hasGardener;
-  $('#gardener-parcel').dataset.gardenerParcel = activeParcel;
-  $('#gardener-parcel').textContent = `${translate('parcel')} ${activeParcel + 1}`;
-  $('#gardener-status').dataset.i18n = hasGardener ? 'gardenerOwned' : 'gardenerDescription';
-  $('#gardener-status').textContent = translate($('#gardener-status').dataset.i18n);
-  const sources = views.filter(({ id }) => id !== activeParcel && resources.hasGardener(id));
-  $('#gardener-transfer').hidden = hasGardener || sources.length === 0;
-  const sourceSelect = $('#gardener-source');
+function updateWorkerShop(role, cost, balance, hasWorker) {
+  const assigned = hasWorker(activeParcel);
+  $(`#buy-${role}`).disabled = assigned || balance < cost;
+  const label = $(`#buy-${role} [data-i18n]`);
+  label.dataset.i18n = assigned ? `${role}Working` : `buy${role[0].toUpperCase()}${role.slice(1)}`;
+  label.textContent = translate(label.dataset.i18n);
+  $(`#${role}-price`).hidden = assigned;
+  $(`#${role}-parcel`).dataset.workerParcel = activeParcel;
+  $(`#${role}-parcel`).textContent = `${translate('parcel')} ${activeParcel + 1}`;
+  const status = $(`#${role}-status`);
+  status.dataset.i18n = assigned ? `${role}Owned` : `${role}Description`;
+  status.textContent = translate(status.dataset.i18n);
+  const sources = views.filter(({ id }) => id !== activeParcel && hasWorker(id));
+  $(`#${role}-transfer`).hidden = assigned || sources.length === 0;
+  const sourceSelect = $(`#${role}-source`);
   const sourceIds = sources.map(({ id }) => String(id)).join(',');
   if (sourceSelect.dataset.sources !== sourceIds) {
     const previous = sourceSelect.value;
@@ -282,6 +308,22 @@ function updateUI() {
     sourceSelect.dataset.sources = sourceIds;
   }
   for (const option of sourceSelect.options) option.textContent = `${translate('parcel')} ${Number(option.value) + 1}`;
+}
+
+function updateUI() {
+  const view = views[activeParcel];
+  const record = resources.parcel(activeParcel);
+  const occupied = new Set(record.plants.map((plant) => plant.slot));
+  const full = occupied.size === plantingSlots.length;
+  if (selectedType && !isTree(selectedType) && (full || resources.stone < plantCosts[selectedType])) selectedType = null;
+  $('#stone-count').textContent = resources.stone;
+  $('#stone-count').dataset.digits = String(resources.stone).length;
+  $('#fruit-count').textContent = resources.fruit;
+  $('#fruit-count').dataset.digits = String(resources.fruit).length;
+  syncGardeners();
+  syncMiners();
+  updateWorkerShop('gardener', gardenerCost, resources.stone, resources.hasGardener);
+  updateWorkerShop('miner', minerCost, resources.fruit, resources.hasMiner);
   $('#slots-used').textContent = `${occupied.size} / ${plantingSlots.length}`;
   document.querySelectorAll('[data-plant-type]').forEach((button) => {
     const type = button.dataset.plantType;
@@ -658,6 +700,7 @@ document.addEventListener('visibilitychange', () => { lastFrame = undefined; });
 renderer.setAnimationLoop((now) => {
   const delta = lastFrame === undefined ? 0 : now - lastFrame;
   lastFrame = now;
+  for (const miner of minerViews.values()) miner.update(delta, !document.hidden);
   for (const [id, gardener] of gardenerViews) {
     const tree = views[id].treeRecord;
     gardener.update(delta, !document.hidden && Boolean(tree && Date.now() - tree.startedAt >= growthDuration));

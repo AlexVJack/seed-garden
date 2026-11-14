@@ -4,6 +4,7 @@ import { createResources, stoneLimit } from '../resources.js';
 import { plantingSlots, growthDuration, expansionCost, hexDirections, parcelLimit, parcelPosition, hexKey, treeKind, canPlantTree, treeBiomes, terrainSeed, moveTargets, connectedHexKeys } from '../garden-layout.js';
 import { quarryLayout, quarryRadius } from '../terrain-layout.js';
 import { gardenerCost, gardenerRoute, createGatheringCycle } from '../gardener-logic.js';
+import { minerCost, minerPosition, createMiningCycle } from '../miner-logic.js';
 
 function storage(initial = null) {
   let value = initial;
@@ -63,6 +64,183 @@ function gardenerSave(count = 3, extra = {}) {
     ...extra,
   };
 }
+
+test('miner costs exactly 100 fruit, not stone, with one per chosen plot', () => {
+  assert.equal(minerCost, 100);
+  const poor = createResources(storage(JSON.stringify(gardenerSave(3, { stone: 10000, fruit: 99 }))));
+  assert.equal(poor.buyMiner(2), false);
+  assert.equal(poor.fruit, 99);
+  assert.equal(poor.stone, 10000);
+  const saved = storage(JSON.stringify(gardenerSave(3, { stone: 0, fruit: 200 })));
+  const garden = createResources(saved);
+  assert.equal(garden.buyMiner(2), true);
+  assert.equal(garden.hasMiner(0), false);
+  assert.equal(garden.hasMiner(2), true);
+  assert.equal(garden.fruit, 100);
+  assert.equal(garden.stone, 0);
+  assert.equal(garden.buyMiner(2), false);
+  assert.equal(garden.fruit, 100);
+  assert.equal(garden.buyMiner(1), true);
+  const restored = createResources(saved);
+  assert.equal(restored.fruit, 0);
+  assert.equal(restored.hasMiner(1), true);
+  assert.equal(restored.hasMiner(2), true);
+});
+
+test('miners need no tree, coexist with gardeners, and add to the same capped stone balance', () => {
+  const state = gardenerSave(3, { stone: 100, fruit: 200 });
+  state.parcels[1].tree = null;
+  const saved = storage(JSON.stringify(state));
+  const garden = createResources(saved);
+  assert.equal(garden.buyGardener(1), true);
+  assert.equal(garden.buyMiner(1), true);
+  assert.equal(garden.collectFruit(1), false);
+  assert.equal(garden.collectStone(1), true);
+  assert.equal(garden.stone, 1);
+  assert.equal(garden.fruit, 100);
+  assert.equal(garden.collectStone(0), false);
+  garden.buyMiner(2);
+  garden.collectStone(2);
+  assert.equal(garden.stone, 2);
+  const restored = createResources(saved);
+  assert.equal(restored.stone, 2);
+  assert.equal(restored.hasGardener(1), true);
+  assert.equal(restored.hasMiner(1), true);
+  assert.equal(restored.hasMiner(2), true);
+  const cappedSave = storage('{"stone":9999,"fruit":100}');
+  const capped = createResources(cappedSave);
+  capped.buyMiner();
+  assert.equal(capped.collectStone(), true);
+  const snapshot = cappedSave.getItem();
+  assert.equal(capped.collectStone(), false);
+  assert.equal(capped.stone, stoneLimit);
+  assert.equal(cappedSave.getItem(), snapshot);
+  capped.plant('flower', 0, 1);
+  assert.equal(capped.collectStone(), true);
+  assert.equal(capped.stone, stoneLimit);
+});
+
+test('miner transfers are free, persistent and independent of gardeners', () => {
+  const saved = storage(JSON.stringify(gardenerSave(3, { fruit: 100 })));
+  const garden = createResources(saved);
+  garden.buyGardener(0);
+  garden.buyGardener(2);
+  garden.buyMiner(0);
+  const before = garden.parcels.map(({ miner, ...parcel }) => parcel);
+  const stone = garden.stone;
+  const fruit = garden.fruit;
+  assert.equal(garden.transferMiner(0, 2), true);
+  assert.equal(garden.hasMiner(0), false);
+  assert.equal(garden.hasMiner(2), true);
+  assert.equal(garden.stone, stone);
+  assert.equal(garden.fruit, fruit);
+  assert.deepEqual(garden.parcels.map(({ miner, ...parcel }) => parcel), before);
+  const restored = createResources(saved);
+  assert.equal(restored.hasMiner(0), false);
+  assert.equal(restored.hasMiner(2), true);
+  assert.equal(restored.hasGardener(0), true);
+  assert.equal(restored.hasGardener(2), true);
+});
+
+test('invalid miner actions never spend fruit, duplicate workers or alter snapshots', () => {
+  const saved = storage(JSON.stringify(gardenerSave(3, { fruit: 300 })));
+  const garden = createResources(saved);
+  garden.buyMiner(0);
+  garden.buyMiner(1);
+  const snapshot = saved.getItem();
+  for (const id of [-1, 3, 0.5, NaN, '1', null]) {
+    assert.equal(garden.hasMiner(id), false);
+    assert.equal(garden.buyMiner(id), false);
+    assert.equal(garden.collectStone(id), false);
+    assert.equal(garden.transferMiner(id, 2), false);
+    assert.equal(garden.transferMiner(0, id), false);
+  }
+  for (const [from, to] of [[0, 0], [0, 1], [2, 0], [2, 2]]) assert.equal(garden.transferMiner(from, to), false);
+  assert.equal(saved.getItem(), snapshot);
+});
+
+test('miners stay with shovel-moved plots; new game removes both worker roles', () => {
+  const saved = storage(JSON.stringify(gardenerSave(3, { fruit: 100 })));
+  const garden = createResources(saved);
+  garden.buyGardener(2);
+  garden.buyMiner(2);
+  const before = garden.parcel(2);
+  assert.equal(garden.moveParcel(2, garden.moveTargets(2)[0]), true);
+  assert.equal(garden.hasMiner(2), true);
+  assert.equal(garden.hasGardener(2), true);
+  assert.deepEqual(garden.parcel(2).tree, before.tree);
+  const restored = createResources(saved);
+  assert.equal(restored.hasMiner(2), true);
+  assert.equal(restored.collectStone(2), true);
+  restored.newGame();
+  assert.equal(restored.parcels.some(parcel => parcel.miner || parcel.gardener), false);
+  assert.equal(createResources(saved).hasMiner(), false);
+});
+
+test('old saves have no miner, malformed flags are ignored, storage failures are tolerated', () => {
+  for (const value of [undefined, 1, 'true', {}, null, false]) {
+    const state = gardenerSave(1);
+    state.parcels[0].miner = value;
+    assert.equal(createResources(storage(JSON.stringify(state))).hasMiner(), false);
+  }
+  const temporary = createResources({
+    getItem: () => '{"fruit":100}',
+    setItem: () => { throw new Error('Storage unavailable'); },
+  });
+  assert.equal(temporary.buyMiner(), true);
+  assert.equal(temporary.collectStone(), true);
+  assert.equal(temporary.stone, 1);
+});
+
+test('all 36 miners persist without granting offline stone', () => {
+  const saved = storage(JSON.stringify(gardenerSave(parcelLimit, { stone: 0, fruit: 3600 })));
+  const garden = createResources(saved);
+  for (let id = 0; id < parcelLimit; id++) {
+    assert.equal(garden.buyMiner(id), true);
+    assert.equal(garden.collectStone(id), true);
+  }
+  const restored = createResources(saved);
+  assert.equal(restored.parcels.filter(parcel => parcel.miner).length, parcelLimit);
+  assert.equal(restored.fruit, 0);
+  assert.equal(restored.stone, parcelLimit);
+});
+
+test('mining strikes exactly once every three visible seconds, pauses and never catches up', () => {
+  let strikes = 0;
+  const cycle = createMiningCycle(() => strikes++);
+  for (let i = 0; i < 29; i++) cycle.advance(100, true);
+  assert.equal(strikes, 0);
+  assert.equal(cycle.advance(100, true), true);
+  assert.equal(strikes, 1);
+  for (let i = 0; i < 30; i++) cycle.advance(100, true);
+  assert.equal(strikes, 2);
+  assert.equal(cycle.elapsed, 0);
+  cycle.advance(600000, false);
+  assert.equal(cycle.elapsed, 0);
+  cycle.advance(600000, true);
+  assert.equal(cycle.elapsed, 100);
+  assert.equal(strikes, 2);
+  for (const value of [NaN, Infinity, -1, 0]) cycle.advance(value, true);
+  assert.equal(cycle.elapsed, 100);
+});
+
+test('miner positions stay on their plot, near the quarry, off planting places and gardener corridor', () => {
+  for (let q = -3; q <= 3; q++) {
+    for (let r = -3; r <= 3; r++) {
+      const quarry = quarryLayout({ q, r });
+      const position = minerPosition(quarry);
+      assert.deepEqual(position, minerPosition(quarry));
+      assert.ok(Math.hypot(position.x - quarry.x, position.z - quarry.z) >= 0.47);
+      assert.ok(Math.hypot(position.x - quarry.x, position.z - quarry.z) <= 0.63);
+      assert.ok(Math.hypot(position.x, position.z) > 1.79);
+      for (const slot of plantingSlots) assert.ok(Math.hypot(position.x - slot.x, position.z - slot.z) > 0.40);
+      for (let side = 0; side < 6; side++) {
+        const angle = side * Math.PI / 3;
+        assert.ok(position.x * Math.cos(angle) + position.z * Math.sin(angle) < 2.67 * Math.cos(Math.PI / 6) - 0.14);
+      }
+    }
+  }
+});
 
 test('gardeners can be hired on any plot first, with one per plot and a shared fruit balance', () => {
   const saved = storage(JSON.stringify(gardenerSave()));

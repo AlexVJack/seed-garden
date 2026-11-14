@@ -24,7 +24,7 @@ const messages = {
     rotate: 'Drag the scene to rotate',
     language: 'Language',
     newGame: 'New game',
-    confirmNewGame: 'Start a new game? Your entire garden, all plots, plants, stone, fruit and nuts will be lost. This cannot be undone.',
+    confirmNewGame: 'Start a new game? Your entire garden, all plots, plants, hired workers, stone, fruit and nuts will be lost. This cannot be undone.',
     resources: 'Resources',
     stone: 'Stone',
     fruit: 'Fruit and nuts',
@@ -38,6 +38,14 @@ const messages = {
     gardenerSource: 'From plot',
     confirmGardenerTransfer: 'Transfer here',
     gardenerTransferred: 'Gardener transferred here for free. The previous plot no longer has a gardener.',
+    miner: 'Miner',
+    buyMiner: 'Hire a miner',
+    minerDescription: 'Hire for 100 fruit. Mines one stone every 3 seconds while the game is visible. No tree required. One miner per plot.',
+    minerOwned: 'Hired for this plot. Works even when you view another plot. No mining in a hidden tab; stone is capped at 10,000.',
+    minerWorking: 'Miner assigned here',
+    minerPurchased: 'Miner hired for this plot for 100 fruit.',
+    transferMiner: 'Transfer a miner here for free',
+    minerTransferred: 'Miner transferred here for free. The previous plot no longer has a miner.',
     mineStone: 'Mine stone (+1)',
     plantShop: 'Plant something',
     openShop: 'Open shop',
@@ -128,7 +136,7 @@ const messages = {
     rotate: 'Потягни сцену, щоб обертати',
     language: 'Мова',
     newGame: 'Нова гра',
-    confirmNewGame: 'Почати нову гру? Увесь сад, усі ділянки, рослини, каміння, плоди та горіхи буде втрачено. Цю дію не можна скасувати.',
+    confirmNewGame: 'Почати нову гру? Увесь сад, усі ділянки, рослини, найняті працівники, каміння, плоди та горіхи буде втрачено. Цю дію не можна скасувати.',
     resources: 'Ресурси',
     stone: 'Камінь',
     fruit: 'Плоди та горіхи',
@@ -142,6 +150,14 @@ const messages = {
     gardenerSource: 'З ділянки',
     confirmGardenerTransfer: 'Перевести сюди',
     gardenerTransferred: 'Садівника безкоштовно переведено сюди. На попередній ділянці садівника більше немає.',
+    miner: 'Шахтар',
+    buyMiner: 'Найняти шахтаря',
+    minerDescription: 'Найм за 100 плодів. Добуває один камінець кожні 3 секунди, поки гру видно. Дерево не потрібне. Один шахтар на ділянку.',
+    minerOwned: 'Найнятий на цю ділянку. Працює, навіть коли оглядаєш іншу. У прихованій вкладці не добуває; ліміт каміння — 10 000.',
+    minerWorking: 'Шахтар працює тут',
+    minerPurchased: 'Шахтаря найнято на цю ділянку за 100 плодів.',
+    transferMiner: 'Безкоштовно перевести шахтаря сюди',
+    minerTransferred: 'Шахтаря безкоштовно переведено сюди. На попередній ділянці шахтаря більше немає.',
     mineStone: 'Добути камінь (+1)',
     plantShop: 'Що посадимо?',
     openShop: 'Відкрити магазин',
@@ -268,9 +284,10 @@ function renderLanguage() {
   });
   const source = document.querySelector('#expansion-source');
   source.textContent = `${translate('parcel')} ${Number(source.dataset.sourceParcel) + 1}`;
-  const gardenerParcel = document.querySelector('#gardener-parcel');
-  gardenerParcel.textContent = `${translate('parcel')} ${Number(gardenerParcel.dataset.gardenerParcel) + 1}`;
-  document.querySelectorAll('#gardener-source option').forEach((option) => {
+  document.querySelectorAll('[data-worker-parcel]').forEach((element) => {
+    element.textContent = `${translate('parcel')} ${Number(element.dataset.workerParcel) + 1}`;
+  });
+  document.querySelectorAll('#gardener-source option, #miner-source option').forEach((option) => {
     option.textContent = `${translate('parcel')} ${Number(option.value) + 1}`;
   });
   renderState();

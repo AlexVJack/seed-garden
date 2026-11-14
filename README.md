@@ -44,6 +44,14 @@ You need a modern browser with WebGL and an internet connection. Three.js loads 
 - Fruit appearance follows the biome: apple, cone, oval baobab fruit, coconut, cherries, acorn or maple samara. All contribute to the single fruit-and-nuts counter above stone.
 - Hiring, assignments and fruit persist. The original single gardener migrates to plot 1. Moving a plot with the shovel keeps its gardener and rebuilds the route; a new game clears all gardeners and fruit.
 
+## Miners
+
+- Hire one miner per unlocked plot for **100 fruit**, not stone. A gardener and miner can work on the same plot.
+- The same blue figure holds a pickaxe and stays beside the quarry. Every **3 seconds**, a strike flashes that rock and adds **1 stone** to the shared balance. No tree is required.
+- All hired miners work while the game tab is visible, regardless of the selected plot. There is no background or offline mining; the **10,000 stone** cap still applies.
+- The shop on an unstaffed plot offers free transfers from another plot. Transfers reset the unfinished strike cycle without changing balances.
+- Hiring and assignments persist. Shovel moves keep the miner with the plot and reposition it beside the new quarry. A new game clears all workers.
+
 ## Expanding the garden: up to 36 plots
 
 - Each expansion requires **150 stone, a grown tree, 3 bushes, 6 mushrooms, and 8 flowers** on the **most recently unlocked plot**, all at once. The shop's “Next hexagon” section identifies that plot and shows progress. Existing plants are not consumed.

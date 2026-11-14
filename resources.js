@@ -1,5 +1,6 @@
 import { plantCosts, plantingSlots, growthDuration, expansionCost, parcelLimit, hexDirections, hexKey, expansionTargets, treeKind, canPlantTree, treeBiomes, moveTargets, connectedHexKeys } from './garden-layout.js';
 import { gardenerCost } from './gardener-logic.js';
+import { minerCost } from './miner-logic.js';
 
 const storageKey = 'seed-garden-resources';
 export const stoneLimit = 10000;
@@ -32,6 +33,7 @@ export function createResources(storage) {
     const type = canPlantTree(record.treeType, id, plotCount) ? record.treeType : treeKind(id);
     return { q: record.q, r: record.r, plants: readPlants(record.plants), tree,
       ...(record.gardener === true ? { gardener: true } : {}),
+      ...(record.miner === true ? { miner: true } : {}),
       ...(tree ? { treeType: type } : {}),
       biome: tree || record.biome === treeBiomes[type] ? treeBiomes[type] : 'meadow' };
   }
@@ -86,6 +88,30 @@ export function createResources(storage) {
   return {
     get stone() { return stone; },
     get fruit() { return fruit; },
+    hasMiner(id = 0) { return parcelAt(id)?.miner === true; },
+    buyMiner(id = 0) {
+      const parcel = parcelAt(id);
+      if (!parcel || parcel.miner || fruit < minerCost) return false;
+      fruit -= minerCost;
+      parcel.miner = true;
+      save();
+      return true;
+    },
+    transferMiner(fromId, toId) {
+      const from = parcelAt(fromId);
+      const to = parcelAt(toId);
+      if (!from?.miner || !to || to.miner || fromId === toId) return false;
+      delete from.miner;
+      to.miner = true;
+      save();
+      return true;
+    },
+    collectStone(id = 0) {
+      if (!parcelAt(id)?.miner || stone >= stoneLimit) return false;
+      stone += 1;
+      save();
+      return true;
+    },
     hasGardener(id = 0) { return parcelAt(id)?.gardener === true; },
     buyGardener(id = 0) {
       const parcel = parcelAt(id);
